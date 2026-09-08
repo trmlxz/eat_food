@@ -1,7 +1,14 @@
 export type Food = { id: string; name: string; emoji?: string; image?: string };
-export type Settings = { level: number; selected: string[]; sound: boolean };
-export const levels = ["蓝莓", "草莓", "小枣", "李子", "苹果", "大苹果"];
-export const levelIcons = ["🫐", "🍓", "🟤", "🟣", "🍎", "🍎"];
+export type Settings = {
+  level: number;
+  selected: string[];
+  sound: boolean;
+  motion: boolean;
+  motionSpeed: number;
+  motionAmplitude: number;
+};
+export const levels = ["蓝莓", "草莓", "小枣", "鸡蛋", "苹果", "大苹果"];
+export const levelIcons = ["🫐", "🍓", "🟤", "🥚", "🍎", "🍎"];
 export const foods: Food[] = [
   ["apple", "苹果", "🍎"],
   ["banana", "香蕉", "🍌"],
@@ -22,6 +29,9 @@ export const defaults: Settings = {
   level: 4,
   selected: ["apple", "rice", "banana"],
   sound: false,
+  motion: false,
+  motionSpeed: 3,
+  motionAmplitude: 2,
 };
 export function readSettings(): Settings {
   try {
@@ -34,6 +44,19 @@ export function readSettings(): Settings {
         ? s.selected.filter((v: unknown) => typeof v === "string")
         : defaults.selected,
       sound: s.sound === true,
+      motion: s.motion === true,
+      motionSpeed:
+        Number.isInteger(s.motionSpeed) &&
+        s.motionSpeed >= 1 &&
+        s.motionSpeed <= 5
+          ? s.motionSpeed
+          : defaults.motionSpeed,
+      motionAmplitude:
+        Number.isInteger(s.motionAmplitude) &&
+        s.motionAmplitude >= 1 &&
+        s.motionAmplitude <= 5
+          ? s.motionAmplitude
+          : defaults.motionAmplitude,
     };
   } catch {
     return { ...defaults };

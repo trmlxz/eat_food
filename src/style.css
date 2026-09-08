@@ -1308,3 +1308,46 @@ h1 svg {
   height: 37px;
   display: block;
 }
+
+.stomach-motion {
+  transform-box: view-box;
+  transform-origin: 150px 145px;
+}
+.stomach-motion.active {
+  animation: tummy-motion var(--motion-duration, 3s) ease-in-out infinite;
+}
+.motion-controls {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #e6e9dd;
+  border-radius: 12px;
+}
+.motion-controls legend {
+  font-size: 12px;
+  color: #81916f;
+  padding: 0 6px;
+}
+.motion-controls:disabled {
+  opacity: 0.45;
+}
+.motion-controls output {
+  white-space: nowrap;
+  min-width: 35px;
+}
+@keyframes tummy-motion {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(var(--squeeze-x), var(--stretch-y));
+  }
+  65% {
+    transform: scale(var(--stretch-x), var(--squeeze-y));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stomach-motion.active {
+    animation: none !important;
+  }
+}

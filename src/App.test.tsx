@@ -47,6 +47,9 @@ describe("scan experience", () => {
       level: 6,
       selected: ["rice", "banana", "strawberry"],
       sound: false,
+      motion: false,
+      motionSpeed: 3,
+      motionAmplitude: 2,
     });
     vi.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
@@ -67,7 +70,7 @@ describe("scan experience", () => {
     ).toHaveAccessibleName(/1级/);
     fireEvent.click(screen.getByRole("button", { name: "关闭家长设置" }));
     settings();
-    expect(screen.getByRole("button", { name: /04.*李子/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /04.*鸡蛋/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -87,6 +90,9 @@ describe("scan experience", () => {
       level: 4,
       selected: ["apple"],
       sound: false,
+      motion: false,
+      motionSpeed: 3,
+      motionAmplitude: 2,
     });
   });
   it("keeps the menu open when settings cannot be persisted", async () => {
@@ -98,5 +104,72 @@ describe("scan experience", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
     expect(screen.getByRole("dialog")).toHaveAttribute("open");
     expect(screen.getByRole("alert")).toHaveTextContent("设置未保存");
+  });
+});
+
+it("previews motion, persists its levels, and can disable it", async () => {
+  await mount();
+  settings();
+  fireEvent.click(screen.getByRole("tab", { name: "更多设置" }));
+  expect(screen.getByRole("slider", { name: "蠕动速度" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("switch", { name: "胃部蠕动" }));
+  fireEvent.change(screen.getByRole("slider", { name: "蠕动速度" }), {
+    target: { value: "5" },
+  });
+  fireEvent.change(screen.getByRole("slider", { name: "蠕动幅度" }), {
+    target: { value: "4" },
+  });
+  expect(
+    document.querySelector('[aria-label="蠕动效果预览"] .stomach-motion'),
+  ).toHaveClass("active");
+  fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+  expect(readSettings()).toMatchObject({
+    motion: true,
+    motionSpeed: 5,
+    motionAmplitude: 4,
+  });
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
+  act(() => vi.advanceTimersByTime(4000));
+  expect(document.querySelector(".radar-disc .stomach-motion")).toHaveClass(
+    "active",
+  );
+  expect(document.querySelector(".radar-disc .stomach-motion")).toHaveStyle(
+    "--motion-duration: 1.2s",
+  );
+  vi.useRealTimers();
+  settings();
+  expect(screen.getByRole("slider", { name: "蠕动幅度" })).toHaveValue("4");
+  fireEvent.click(screen.getByRole("switch", { name: "胃部蠕动" }));
+  expect(
+    document.querySelector('[aria-label="蠕动效果预览"] .stomach-motion'),
+  ).not.toHaveClass("active");
+  fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+  expect(readSettings()).toMatchObject({
+    motion: false,
+    motionSpeed: 5,
+    motionAmplitude: 4,
+  });
+});
+it("migrates old settings and rejects invalid motion levels", () => {
+  localStorage.setItem(
+    "tummy-settings",
+    JSON.stringify({ level: 4, selected: ["apple"], sound: true }),
+  );
+  expect(readSettings()).toMatchObject({
+    level: 4,
+    sound: true,
+    motion: false,
+    motionSpeed: 3,
+    motionAmplitude: 2,
+  });
+  localStorage.setItem(
+    "tummy-settings",
+    JSON.stringify({ motion: "true", motionSpeed: 0, motionAmplitude: 6 }),
+  );
+  expect(readSettings()).toMatchObject({
+    motion: false,
+    motionSpeed: 3,
+    motionAmplitude: 2,
   });
 });

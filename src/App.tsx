@@ -245,7 +245,11 @@ export default function App() {
                 <div className="radar-ring three" />
                 {phase !== "result" && <div className="radar-sweep" />}
                 {phase === "result" ? (
-                  <Stomach level={settings.level} items={selected} />
+                  <Stomach
+                    level={settings.level}
+                    items={selected}
+                    motion={settings}
+                  />
                 ) : (
                   <>
                     <div className="radar-blip b1" />
@@ -496,6 +500,7 @@ export default function App() {
                     <div className="stomach-preview">
                       <Stomach
                         level={draft.level}
+                        motion={draft}
                         items={all.filter((f) => draft.selected.includes(f.id))}
                       />
                       <span>
@@ -612,6 +617,78 @@ export default function App() {
                   <>
                     <div className="option-row">
                       <div>
+                        <h3>胃部蠕动</h3>
+                        <p>让小肚子轻轻收缩、舒展</p>
+                      </div>
+                      <button
+                        role="switch"
+                        aria-label="胃部蠕动"
+                        aria-checked={draft.motion}
+                        className={`switch ${draft.motion ? "on" : ""}`}
+                        onClick={() =>
+                          setDraft((d) => ({ ...d, motion: !d.motion }))
+                        }
+                      >
+                        <span />
+                      </button>
+                    </div>
+                    <fieldset
+                      className="motion-controls"
+                      disabled={!draft.motion}
+                    >
+                      <legend>蠕动等级</legend>
+                      <label className="range-label">
+                        速度
+                        <input
+                          aria-label="蠕动速度"
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={draft.motionSpeed}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              motionSpeed: Number(e.target.value),
+                            }))
+                          }
+                        />
+                        <output>{draft.motionSpeed} 级</output>
+                      </label>
+                      <p className="muted">1 级慢悠悠 · 5 级最快</p>
+                      <label className="range-label">
+                        幅度
+                        <input
+                          aria-label="蠕动幅度"
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={draft.motionAmplitude}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              motionAmplitude: Number(e.target.value),
+                            }))
+                          }
+                        />
+                        <output>{draft.motionAmplitude} 级</output>
+                      </label>
+                      <p className="muted">1 级轻微 · 5 级明显</p>
+                    </fieldset>
+                    <div className="stomach-preview" aria-label="蠕动效果预览">
+                      <Stomach
+                        level={draft.level}
+                        items={all.filter((f) => draft.selected.includes(f.id))}
+                        motion={draft}
+                      />
+                      <span>
+                        {draft.motion ? "蠕动效果实时预览" : "蠕动已关闭"}
+                      </span>
+                    </div>
+                    <p className="muted">系统开启“减少动态效果”时暂停蠕动。</p>
+                    <div className="option-row">
+                      <div>
                         <h3>轻柔扫描音效</h3>
                         <p>让小雷达发出轻轻的声音</p>
                       </div>
@@ -663,6 +740,7 @@ export default function App() {
                 <div className="stomach-preview" aria-label="扫描结果预览">
                   <Stomach
                     level={draft.level}
+                    motion={draft}
                     items={all.filter((f) => draft.selected.includes(f.id))}
                   />
                   <span>{levels[draft.level - 1]}大小 · 结果预览</span>
