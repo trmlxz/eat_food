@@ -152,6 +152,7 @@ export default function App() {
   async function addPhoto(food: Food) {
     await photoStore("save", food);
     setPhotos((p) => [...p, food]);
+    setPhotoPage(Math.floor(photos.length / 3));
   }
   async function deletePhoto(food: Food) {
     setDeleting(food.id);

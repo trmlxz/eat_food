@@ -10,7 +10,7 @@ export default function PhotoEditor({
   onSave: (food: Food) => Promise<void>;
   onClose: () => void;
 }) {
-  const [url] = useState(() => URL.createObjectURL(file));
+  const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -21,7 +21,11 @@ export default function PhotoEditor({
     null,
   );
   const crop = useRef<HTMLDivElement>(null);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
   const aspect = natural.w / natural.h || 1;
   const width = aspect >= 1 ? 100 * aspect : 100;
   const height = aspect >= 1 ? 100 : 100 / aspect;
@@ -51,13 +55,24 @@ export default function PhotoEditor({
         img.height * scale,
       );
       await onSave({
-        id: crypto.randomUUID(),
+        id:
+          "photo-" +
+          Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+            byte.toString(16).padStart(2, "0"),
+          ).join(""),
         name: name.trim(),
         image: canvas.toDataURL("image/jpeg", 0.86),
       });
       onClose();
-    } catch {
-      setError("照片未能保存，请检查浏览器存储空间后重试。");
+    } catch (cause) {
+      const name = cause instanceof Error ? cause.name : "";
+      setError(
+        name === "QuotaExceededError"
+          ? "照片未能保存，浏览器存储空间已满，请删除部分照片后重试。"
+          : name === "EncodingError"
+            ? "照片未能保存，无法解码此图片，请转换为 JPG 或 PNG 后重试。"
+            : "照片未能保存，请重试；若仍失败，请检查浏览器是否允许网站存储。",
+      );
     } finally {
       setBusy(false);
     }
@@ -102,7 +117,7 @@ export default function PhotoEditor({
         onPointerCancel={() => (drag.current = null)}
       >
         <img
-          src={url}
+          src={url || undefined}
           alt="待裁剪的食物照片"
           draggable={false}
           onLoad={(e) =>
