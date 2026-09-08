@@ -32,6 +32,7 @@ import Stomach from "./Stomach";
 import PhotoEditor from "./PhotoEditor";
 
 export default function App() {
+  const [camera, setCamera] = useState(false);
   const [settings, setSettings] = useState(readSettings);
   const [draft, setDraft] = useState<Settings>(settings);
   const [photos, setPhotos] = useState<Food[]>([]);
@@ -65,6 +66,24 @@ export default function App() {
       void audio.current?.close();
     };
   }, []);
+  function leaveCamera() {
+    if (scan.current) clearTimeout(scan.current);
+    setPhase("ready");
+    setCamera(false);
+  }
+  useEffect(() => {
+    if (!camera) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") leaveCamera();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [camera]);
   function openSettings() {
     setDraft({ ...settings, selected: [...settings.selected] });
     setPreview(false);
@@ -115,7 +134,7 @@ export default function App() {
   }
   function save() {
     try {
-      localStorage.setItem("tummy-settings", JSON.stringify(draft));
+      localStorage.setItem("tummy-settings-v2", JSON.stringify(draft));
       setSettings(draft);
       setPhase("ready");
       dialog.current?.close();
@@ -134,7 +153,6 @@ export default function App() {
   async function addPhoto(food: Food) {
     await photoStore("save", food);
     setPhotos((p) => [...p, food]);
-    setDraft((d) => ({ ...d, selected: [...d.selected, food.id] }));
   }
   async function deletePhoto(food: Food) {
     setDeleting(food.id);
@@ -164,7 +182,7 @@ export default function App() {
     e.target.value = "";
   }
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${camera ? "camera-mode" : ""}`}>
       <header className="topbar">
         <a className="brand" href="./" aria-label="小肚子雷达首页">
           <span className="brand-icon">
@@ -217,6 +235,15 @@ export default function App() {
           <p>开启一场奇妙的食物探险，发现每一口的小秘密。</p>
         </div>
         <section className={`scanner-card ${phase}`} aria-label="小肚子扫描仪">
+          {camera && (
+            <button
+              className="camera-back"
+              onClick={leaveCamera}
+              aria-label="退出全屏扫描"
+            >
+              <X size={23} />
+            </button>
+          )}
           <div className="card-top">
             <span>
               <span className="status-dot" />
@@ -306,7 +333,14 @@ export default function App() {
               )}
               <button
                 className="primary scan-button"
-                onClick={start}
+                onClick={
+                  camera
+                    ? start
+                    : () => {
+                        setPhase("ready");
+                        setCamera(true);
+                      }
+                }
                 disabled={phase === "scanning"}
               >
                 {phase === "result" ? (
@@ -315,11 +349,13 @@ export default function App() {
                   <Radar size={22} />
                 )}
                 <span>
-                  {phase === "ready"
-                    ? "开始扫描"
-                    : phase === "scanning"
-                      ? "扫描中…"
-                      : "再扫描一次"}
+                  {!camera
+                    ? "开始"
+                    : phase === "ready"
+                      ? "开始扫描"
+                      : phase === "scanning"
+                        ? "扫描中…"
+                        : "再扫描一次"}
                 </span>
                 {phase !== "scanning" && <ArrowRight size={19} />}
               </button>

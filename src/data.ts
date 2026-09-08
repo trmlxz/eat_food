@@ -27,7 +27,7 @@ export const foods: Food[] = [
 }));
 export const defaults: Settings = {
   level: 4,
-  selected: ["apple", "rice", "banana"],
+  selected: [],
   sound: false,
   motion: false,
   motionSpeed: 3,
@@ -35,14 +35,18 @@ export const defaults: Settings = {
 };
 export function readSettings(): Settings {
   try {
-    const s = JSON.parse(localStorage.getItem("tummy-settings") || "null");
+    const stored = localStorage.getItem("tummy-settings-v2");
+    const s = JSON.parse(
+      stored || localStorage.getItem("tummy-settings") || "null",
+    );
     if (!s) return { ...defaults };
     return {
       level:
         Number.isInteger(s.level) && s.level >= 1 && s.level <= 6 ? s.level : 4,
-      selected: Array.isArray(s.selected)
-        ? s.selected.filter((v: unknown) => typeof v === "string")
-        : defaults.selected,
+      selected:
+        stored && Array.isArray(s.selected)
+          ? s.selected.filter((v: unknown) => typeof v === "string")
+          : defaults.selected,
       sound: s.sound === true,
       motion: s.motion === true,
       motionSpeed:

@@ -21,6 +21,7 @@ describe("scan experience", () => {
   it("completes the scan once and supports scanning again", async () => {
     vi.useFakeTimers();
     await mount();
+    fireEvent.click(screen.getByRole("button", { name: "开始" }));
     fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
     expect(screen.getByRole("button", { name: "扫描中…" })).toBeDisabled();
     act(() => vi.advanceTimersByTime(3999));
@@ -45,17 +46,18 @@ describe("scan experience", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
     expect(readSettings()).toEqual({
       level: 6,
-      selected: ["rice", "banana", "strawberry"],
+      selected: ["strawberry", "apple"],
       sound: false,
       motion: false,
       motionSpeed: 3,
       motionAmplitude: 2,
     });
     vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "开始" }));
     fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
     act(() => vi.advanceTimersByTime(4000));
     const img = screen.getByRole("img", { name: /6级胃部示意图/ });
-    expect(img).toHaveAccessibleName("6级胃部示意图，香蕉、草莓、米饭");
+    expect(img).toHaveAccessibleName("6级胃部示意图，苹果、草莓");
     vi.useRealTimers();
   });
   it("does not apply cancelled settings and offers a preview", async () => {
@@ -76,10 +78,10 @@ describe("scan experience", () => {
     );
   });
   it("recovers safely from corrupt stored settings", () => {
-    localStorage.setItem("tummy-settings", "{bad");
+    localStorage.setItem("tummy-settings-v2", "{bad");
     expect(readSettings()).toEqual(defaults);
     localStorage.setItem(
-      "tummy-settings",
+      "tummy-settings-v2",
       JSON.stringify({
         level: 99,
         selected: [null, "apple", 3],
@@ -129,6 +131,7 @@ it("previews motion, persists its levels, and can disable it", async () => {
     motionAmplitude: 4,
   });
   vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("button", { name: "开始" }));
   fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
   act(() => vi.advanceTimersByTime(4000));
   expect(document.querySelector(".radar-disc .stomach-motion")).toHaveClass(
@@ -138,6 +141,7 @@ it("previews motion, persists its levels, and can disable it", async () => {
     "--motion-duration: 1.2s",
   );
   vi.useRealTimers();
+  fireEvent.click(screen.getByRole("button", { name: "退出全屏扫描" }));
   settings();
   expect(screen.getByRole("slider", { name: "蠕动幅度" })).toHaveValue("4");
   fireEvent.click(screen.getByRole("switch", { name: "胃部蠕动" }));
@@ -153,7 +157,7 @@ it("previews motion, persists its levels, and can disable it", async () => {
 });
 it("migrates old settings and rejects invalid motion levels", () => {
   localStorage.setItem(
-    "tummy-settings",
+    "tummy-settings-v2",
     JSON.stringify({ level: 4, selected: ["apple"], sound: true }),
   );
   expect(readSettings()).toMatchObject({
@@ -164,12 +168,52 @@ it("migrates old settings and rejects invalid motion levels", () => {
     motionAmplitude: 2,
   });
   localStorage.setItem(
-    "tummy-settings",
+    "tummy-settings-v2",
     JSON.stringify({ motion: "true", motionSpeed: 0, motionAmplitude: 6 }),
   );
   expect(readSettings()).toMatchObject({
     motion: false,
     motionSpeed: 3,
     motionAmplitude: 2,
+  });
+});
+
+it("starts with an empty stomach and cancels an active scan when leaving camera mode", async () => {
+  await mount();
+  expect(readSettings().selected).toEqual([]);
+  fireEvent.click(screen.getByRole("button", { name: "开始" }));
+  expect(document.querySelector(".camera-mode")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("img", { name: /级胃部示意图/ }),
+  ).not.toBeInTheDocument();
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
+  act(() => vi.advanceTimersByTime(4000));
+  expect(
+    screen.getByRole("img", { name: "4级胃部示意图，没有选择食物" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "再扫描一次" }));
+  fireEvent.click(screen.getByRole("button", { name: "退出全屏扫描" }));
+  act(() => vi.advanceTimersByTime(4000));
+  expect(document.querySelector(".camera-mode")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "开始" })).toBeInTheDocument();
+  expect(document.body.style.overflow).not.toBe("hidden");
+  vi.useRealTimers();
+});
+it("clears legacy automatic foods while preserving the other settings", () => {
+  localStorage.setItem(
+    "tummy-settings",
+    JSON.stringify({
+      level: 6,
+      selected: ["apple", "rice", "banana"],
+      motion: true,
+      motionSpeed: 5,
+    }),
+  );
+  expect(readSettings()).toMatchObject({
+    level: 6,
+    selected: [],
+    motion: true,
+    motionSpeed: 5,
   });
 });

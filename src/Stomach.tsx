@@ -12,14 +12,14 @@ export default function Stomach({
   motion?: Pick<Settings, "motion" | "motionSpeed" | "motionAmplitude">;
 }) {
   const id = useId().replace(/:/g, "");
-  const scale = 0.48 + (level - 1) * 0.104;
+  const scale = [0.12, 0.18, 0.25, 1 / 3, 0.62, 1][level - 1];
   const columns = Math.max(1, Math.ceil(Math.sqrt(items.length)));
   const rows = Math.max(1, Math.ceil(items.length / columns));
   const size = Math.min(68, 108 / Math.max(columns, rows));
   return (
     <svg
       className="stomach"
-      viewBox="0 0 300 290"
+      viewBox="20 4 260 264"
       role="img"
       aria-label={`${level}级胃部示意图，${items.map((f) => f.name).join("、") || "没有选择食物"}`}
     >
