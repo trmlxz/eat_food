@@ -29,6 +29,7 @@ import {
   type Settings,
 } from "./data";
 import Stomach from "./Stomach";
+import DraggableStomach from "./DraggableStomach";
 import PhotoEditor from "./PhotoEditor";
 
 export default function App() {
@@ -272,7 +273,7 @@ export default function App() {
                 <div className="radar-ring three" />
                 {phase !== "result" && <div className="radar-sweep" />}
                 {phase === "result" ? (
-                  <Stomach
+                  <DraggableStomach
                     level={settings.level}
                     items={selected}
                     motion={settings}

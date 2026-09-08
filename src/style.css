@@ -1479,7 +1479,7 @@ h1 svg {
   background: transparent;
   overflow: visible;
 }
-.camera-mode .result .radar-disc > :not(.stomach) {
+.camera-mode .result .radar-disc > :not(.stomach-drag-surface) {
   display: none;
 }
 .camera-mode .stomach {
@@ -1506,4 +1506,22 @@ h1 svg {
   .camera-mode .radar-disc {
     width: min(68vw, 80dvh);
   }
+}
+
+.stomach-drag-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.stomach-drag-surface.dragging {
+  cursor: grabbing;
+}
+.stomach-position {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
