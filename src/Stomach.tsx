@@ -1,18 +1,20 @@
 import { useId, type CSSProperties } from "react";
-import type { Food, Settings } from "./data";
+import type { Food, Settings, Expression } from "./data";
 const shape =
   "M 116 18 C 115 53 123 80 153 82 C 172 46 215 44 241 75 C 276 117 270 185 239 221 C 210 255 165 266 128 249 C 91 232 82 204 59 206 L 42 211 L 31 188 C 50 173 69 172 90 181 C 123 195 137 179 134 151 C 130 123 105 110 98 82 C 92 60 92 40 92 18 Z";
 export default function Stomach({
   level,
   items,
   motion,
+  expression = "smile",
 }: {
+  expression?: Expression;
   level: number;
   items: Food[];
   motion?: Pick<Settings, "motion" | "motionSpeed" | "motionAmplitude">;
 }) {
   const id = useId().replace(/:/g, "");
-  const scale = [0.12, 0.18, 0.25, 1 / 3, 0.62, 1][level - 1];
+  const scale = [0.36, 0.54, 0.75, 1, 1.5, 2.2][level - 1];
   const columns = Math.max(1, Math.ceil(Math.sqrt(items.length)));
   const rows = Math.max(1, Math.ceil(items.length / columns));
   const size = Math.min(68, 108 / Math.max(columns, rows));
@@ -110,15 +112,52 @@ export default function Stomach({
             strokeWidth="6"
             strokeLinecap="round"
           />
-          <circle cx="181" cy="94" r="3.5" fill="#79594f" />
-          <circle cx="208" cy="94" r="3.5" fill="#79594f" />
-          <path
-            d="M189 103Q195 109 201 103"
-            fill="none"
+          <g
+            data-expression={expression}
+            transform="translate(-10 32)"
             stroke="#79594f"
             strokeWidth="2.5"
             strokeLinecap="round"
-          />
+          >
+            {expression === "cry" ? (
+              <>
+                <path d="M175 90l10 4M204 94l10-4" fill="none" />
+                <path d="M186 110Q195 99 204 110" fill="none" />
+                <path
+                  d="M179 98Q171 108 179 111Q187 108 179 98Z"
+                  fill="#80cff0"
+                  stroke="none"
+                />
+                <path
+                  d="M210 98Q202 108 210 111Q218 108 210 98Z"
+                  fill="#80cff0"
+                  stroke="none"
+                />
+              </>
+            ) : expression === "laugh" ? (
+              <>
+                <path
+                  d="M176 94Q181 84 186 94M203 94Q208 84 213 94"
+                  fill="none"
+                />
+                <path
+                  d="M183 101H207Q205 121 195 122Q185 121 183 101Z"
+                  fill="#79594f"
+                />
+                <path
+                  d="M188 116Q195 110 202 116Q195 124 188 116Z"
+                  fill="#ee9293"
+                  stroke="none"
+                />
+              </>
+            ) : (
+              <>
+                <circle cx="181" cy="94" r="3.5" fill="#79594f" stroke="none" />
+                <circle cx="208" cy="94" r="3.5" fill="#79594f" stroke="none" />
+                <path d="M187 103Q195 114 203 103" fill="none" />
+              </>
+            )}
+          </g>
         </g>
       </g>
     </svg>

@@ -1,5 +1,7 @@
 export type Food = { id: string; name: string; emoji?: string; image?: string };
+export type Expression = "cry" | "smile" | "laugh";
 export type Settings = {
+  expression: Expression;
   level: number;
   selected: string[];
   sound: boolean;
@@ -26,6 +28,7 @@ export const foods: Food[] = [
   ...(id === "bun" ? { image: `${import.meta.env.BASE_URL}bun.svg` } : {}),
 }));
 export const defaults: Settings = {
+  expression: "smile",
   level: 4,
   selected: [],
   sound: false,
@@ -47,6 +50,9 @@ export function readSettings(): Settings {
         stored && Array.isArray(s.selected)
           ? s.selected.filter((v: unknown) => typeof v === "string")
           : defaults.selected,
+      expression: ["cry", "smile", "laugh"].includes(s.expression)
+        ? s.expression
+        : "smile",
       sound: s.sound === true,
       motion: s.motion === true,
       motionSpeed:

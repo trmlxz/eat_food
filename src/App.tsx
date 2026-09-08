@@ -42,11 +42,10 @@ export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [hint, setHint] = useState(false);
-  const [holding, setHolding] = useState(false);
   const [preview, setPreview] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastParentTap = useRef<number | null>(null);
   const scan = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const all = [...foods, ...photos];
@@ -62,7 +61,6 @@ export default function App() {
       });
     return () => {
       live = false;
-      if (hold.current) clearTimeout(hold.current);
       if (scan.current) clearTimeout(scan.current);
       void audio.current?.close();
     };
@@ -89,13 +87,8 @@ export default function App() {
     setDraft({ ...settings, selected: [...settings.selected] });
     setPreview(false);
     setFile(null);
-    setHolding(false);
+    lastParentTap.current = null;
     dialog.current?.showModal();
-  }
-  function cancelHold() {
-    if (hold.current) clearTimeout(hold.current);
-    hold.current = null;
-    setHolding(false);
   }
   function start() {
     if (phase === "scanning") return;
@@ -194,19 +187,25 @@ export default function App() {
           </span>
         </a>
         <button
-          className={`parent-entry ${holding ? "holding" : ""}`}
-          aria-label="家长设置，长按或按回车打开"
-          title="长按 1.5 秒，或按回车打开"
-          onPointerDown={(e) => {
-            if (e.button !== 0) return;
-            e.currentTarget.setPointerCapture(e.pointerId);
-            setHolding(true);
-            hold.current = setTimeout(openSettings, 1500);
-          }}
-          onPointerUp={cancelHold}
-          onPointerCancel={cancelHold}
+          className="parent-entry"
+          aria-label="家长设置，双击或按回车打开"
+          title="双击打开，或按回车打开"
           onContextMenu={(e) => e.preventDefault()}
-          onClick={() => setHint(true)}
+          onClick={() => {
+            const now = performance.now();
+            if (
+              lastParentTap.current !== null &&
+              now - lastParentTap.current < 400
+            )
+              openSettings();
+            else {
+              lastParentTap.current = now;
+              setHint(true);
+            }
+          }}
+          onDoubleClick={() => {
+            if (!dialog.current?.open) openSettings();
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -277,6 +276,7 @@ export default function App() {
                     level={settings.level}
                     items={selected}
                     motion={settings}
+                    expression={settings.expression}
                   />
                 ) : (
                   <>
@@ -429,11 +429,11 @@ export default function App() {
           <span>
             <LockKeyhole size={15} /> 给爸爸妈妈的小提示
           </span>
-          <p>长按右上角「家长设置」，定制这一次的小发现。</p>
+          <p>双击右上角「家长设置」，定制这一次的小发现。</p>
         </div>
         {hint && (
           <p role="status" className="hint">
-            长按「家长设置」1.5 秒即可打开，键盘可按回车。
+            双击「家长设置」即可打开，键盘可按回车。
           </p>
         )}
       </main>
@@ -538,6 +538,7 @@ export default function App() {
                       <Stomach
                         level={draft.level}
                         motion={draft}
+                        expression={draft.expression}
                         items={all.filter((f) => draft.selected.includes(f.id))}
                       />
                       <span>
@@ -652,6 +653,30 @@ export default function App() {
                   </>
                 ) : (
                   <>
+                    <div className="section-heading">
+                      <h3>小肚子的表情</h3>
+                    </div>
+                    <div className="expression-options">
+                      {(
+                        [
+                          ["cry", "😭", "哭泣"],
+                          ["smile", "🙂", "微笑"],
+                          ["laugh", "😄", "大笑"],
+                        ] as const
+                      ).map(([value, emoji, label]) => (
+                        <button
+                          key={value}
+                          aria-pressed={draft.expression === value}
+                          className={`food-option ${draft.expression === value ? "selected" : ""}`}
+                          onClick={() =>
+                            setDraft((d) => ({ ...d, expression: value }))
+                          }
+                        >
+                          <span>{emoji}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                     <div className="option-row">
                       <div>
                         <h3>胃部蠕动</h3>
@@ -718,6 +743,7 @@ export default function App() {
                         level={draft.level}
                         items={all.filter((f) => draft.selected.includes(f.id))}
                         motion={draft}
+                        expression={draft.expression}
                       />
                       <span>
                         {draft.motion ? "蠕动效果实时预览" : "蠕动已关闭"}
@@ -778,6 +804,7 @@ export default function App() {
                   <Stomach
                     level={draft.level}
                     motion={draft}
+                    expression={draft.expression}
                     items={all.filter((f) => draft.selected.includes(f.id))}
                   />
                   <span>{levels[draft.level - 1]}大小 · 结果预览</span>

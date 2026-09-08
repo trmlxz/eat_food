@@ -13,7 +13,7 @@ async function mount() {
 }
 function settings() {
   fireEvent.keyDown(
-    screen.getByRole("button", { name: "家长设置，长按或按回车打开" }),
+    screen.getByRole("button", { name: "家长设置，双击或按回车打开" }),
     { key: "Enter" },
   );
 }
@@ -47,6 +47,7 @@ describe("scan experience", () => {
     expect(readSettings()).toEqual({
       level: 6,
       selected: ["strawberry", "apple"],
+      expression: "smile",
       sound: false,
       motion: false,
       motionSpeed: 3,
@@ -91,6 +92,7 @@ describe("scan experience", () => {
     expect(readSettings()).toEqual({
       level: 4,
       selected: ["apple"],
+      expression: "smile",
       sound: false,
       motion: false,
       motionSpeed: 3,
@@ -216,4 +218,33 @@ it("clears legacy automatic foods while preserving the other settings", () => {
     motion: true,
     motionSpeed: 5,
   });
+});
+
+it("opens parent settings with two taps and persists the selected expression", async () => {
+  await mount();
+  const entry = screen.getByRole("button", {
+    name: "家长设置，双击或按回车打开",
+  });
+  fireEvent.click(entry);
+  expect(document.querySelector("dialog")).not.toHaveAttribute("open");
+  fireEvent.click(entry);
+  expect(screen.getByRole("dialog")).toHaveAttribute("open");
+  fireEvent.click(screen.getByRole("tab", { name: "更多设置" }));
+  fireEvent.click(screen.getByRole("button", { name: "😭哭泣" }));
+  expect(
+    document.querySelector(
+      '[aria-label="蠕动效果预览"] [data-expression="cry"]',
+    ),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+  expect(readSettings().expression).toBe("cry");
+  fireEvent.doubleClick(entry);
+  fireEvent.click(screen.getByRole("button", { name: "😄大笑" }));
+  expect(
+    document.querySelector(
+      '[aria-label="蠕动效果预览"] [data-expression="laugh"]',
+    ),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "关闭家长设置" }));
+  expect(readSettings().expression).toBe("cry");
 });
