@@ -248,3 +248,17 @@ it("opens parent settings with two taps and persists the selected expression", a
   fireEvent.click(screen.getByRole("button", { name: "关闭家长设置" }));
   expect(readSettings().expression).toBe("cry");
 });
+
+it("previews and saves an unhappy expression without tears", async () => {
+  await mount();
+  settings();
+  fireEvent.click(screen.getByRole("tab", { name: "更多设置" }));
+  fireEvent.click(screen.getByRole("button", { name: "🙁不高兴" }));
+  const face = document.querySelector(
+    '[aria-label="蠕动效果预览"] [data-expression="sad"]',
+  );
+  expect(face).toBeInTheDocument();
+  expect(face?.querySelector('[fill="#80cff0"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
+  expect(readSettings().expression).toBe("sad");
+});

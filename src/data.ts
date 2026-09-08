@@ -1,5 +1,5 @@
 export type Food = { id: string; name: string; emoji?: string; image?: string };
-export type Expression = "cry" | "smile" | "laugh";
+export type Expression = "cry" | "sad" | "smile" | "laugh";
 export type Settings = {
   expression: Expression;
   level: number;
@@ -50,7 +50,7 @@ export function readSettings(): Settings {
         stored && Array.isArray(s.selected)
           ? s.selected.filter((v: unknown) => typeof v === "string")
           : defaults.selected,
-      expression: ["cry", "smile", "laugh"].includes(s.expression)
+      expression: ["cry", "sad", "smile", "laugh"].includes(s.expression)
         ? s.expression
         : "smile",
       sound: s.sound === true,

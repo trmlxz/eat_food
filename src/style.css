@@ -1537,3 +1537,219 @@ h1 svg {
 .stomach-preview {
   overflow: hidden;
 }
+
+/* Compact viewport layout; retain overflow as an accessibility fallback. */
+.expression-options {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.settings-dialog {
+  max-height: calc(100dvh - 16px);
+}
+.modal-header {
+  padding: 14px 20px;
+}
+.modal-header h2 {
+  font-size: 18px;
+}
+.modal-body {
+  padding: 10px 20px;
+  max-height: calc(100dvh - 163px);
+}
+.modal-footer {
+  padding: 10px 20px;
+}
+.modal-body .notice {
+  margin-bottom: 9px;
+  padding: 7px 10px;
+  font-size: 10px;
+}
+.modal-body .tabs {
+  margin-bottom: 10px;
+}
+.modal-body .section-heading {
+  margin: 9px 0;
+}
+.modal-body .level-option {
+  min-height: 70px;
+  padding: 7px;
+}
+.modal-body .level-fruit {
+  height: 35px;
+}
+.modal-body .food-option {
+  min-height: 54px;
+  padding: 6px;
+  gap: 3px;
+  font-size: 11px;
+}
+.modal-body .food-option > span {
+  font-size: 24px;
+}
+.modal-body .food-option > img {
+  width: 30px;
+  height: 30px;
+}
+.modal-body .builtin-image {
+  width: 28px;
+  height: 28px;
+}
+.modal-body .food-grid {
+  gap: 6px;
+}
+.modal-body .upload-actions > label {
+  padding: 10px;
+}
+.modal-body .stomach-preview {
+  height: clamp(70px, 13dvh, 110px);
+  margin: 4px 0;
+  padding: 4px;
+}
+.modal-body .option-row {
+  padding: 6px 0;
+}
+.modal-body .option-row p {
+  margin: 3px 0;
+  font-size: 10px;
+}
+.modal-body .motion-controls {
+  padding: 5px 12px;
+}
+.modal-body .range-label {
+  margin: 9px 0;
+}
+.modal-body .motion-controls .muted {
+  display: none;
+}
+.modal-body .muted {
+  margin: 5px 0;
+  font-size: 10px;
+}
+.modal-body .empty-state {
+  padding: 8px;
+  margin: 5px 0;
+}
+.modal-body .text-button {
+  padding: 8px 0;
+}
+.photo-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0;
+  font-size: 11px;
+}
+.photo-pagination .secondary {
+  padding: 7px 12px;
+}
+.modal-body.previewing > .notice,
+.modal-body.previewing > .tabs,
+.modal-body.previewing > section {
+  display: none;
+}
+.modal-body.previewing .stomach-preview {
+  height: min(55dvh, 400px);
+}
+.modal-body .crop {
+  width: min(100%, 24dvh, 240px);
+}
+.modal-body .field-label {
+  margin: 10px 0;
+}
+@media (max-height: 900px) {
+  .app-shell:not(.camera-mode) .topbar {
+    height: 66px;
+  }
+  .app-shell:not(.camera-mode) .intro {
+    padding: 14px 0;
+  }
+  .app-shell:not(.camera-mode) .intro h1 {
+    font-size: 30px;
+    margin: 8px 0;
+  }
+  .app-shell:not(.camera-mode) .intro p {
+    margin: 10px 0 0;
+  }
+  .app-shell:not(.camera-mode) .scanner-layout {
+    padding-top: 5px;
+    padding-bottom: 15px;
+  }
+  .app-shell:not(.camera-mode) .card-top {
+    padding-top: 13px;
+  }
+  .app-shell:not(.camera-mode) .steps {
+    margin: 14px 0;
+  }
+  .app-shell:not(.camera-mode) .site-footer {
+    margin: 10px 0;
+  }
+}
+@media (max-width: 760px) {
+  .app-shell:not(.camera-mode) .radar-area {
+    max-width: min(270px, 33dvh);
+    padding: 21px 17px;
+  }
+  .app-shell:not(.camera-mode) .radar-disc {
+    max-width: min(218px, 26dvh);
+  }
+  .app-shell:not(.camera-mode) .scan-copy h2 {
+    font-size: 18px;
+    margin: 7px 0;
+  }
+  .app-shell:not(.camera-mode) .scan-copy p {
+    display: none;
+  }
+  .app-shell:not(.camera-mode) .scan-note {
+    margin-top: 10px;
+  }
+  .app-shell:not(.camera-mode) .card-footer {
+    padding: 10px 0;
+  }
+  .app-shell:not(.camera-mode) .steps {
+    display: none;
+  }
+  .app-shell:not(.camera-mode) .parent-tip {
+    margin-top: 12px;
+  }
+  .app-shell:not(.camera-mode) .hint {
+    display: none;
+  }
+  .app-shell:not(.camera-mode) .scan-button {
+    height: 48px;
+  }
+}
+@media (max-height: 680px) {
+  .app-shell:not(.camera-mode) .intro .eyebrow,
+  .app-shell:not(.camera-mode) .intro p,
+  .app-shell:not(.camera-mode) .site-footer,
+  .app-shell:not(.camera-mode) .steps {
+    display: none;
+  }
+  .app-shell:not(.camera-mode) .intro {
+    padding: 6px 0;
+  }
+  .modal-body .stomach-preview {
+    height: 58px;
+  }
+  .modal-body .notice {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+  .modal-body .tabs button {
+    padding-top: 4px;
+    padding-bottom: 7px;
+  }
+  .modal-body .food-option {
+    min-height: 46px;
+  }
+  .modal-body .food-option > span {
+    font-size: 20px;
+  }
+  .modal-body .option-row p {
+    display: none;
+  }
+  .modal-body.previewing .stomach-preview {
+    height: 50dvh;
+  }
+}

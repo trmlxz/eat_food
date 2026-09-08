@@ -36,6 +36,7 @@ export default function App() {
   const [camera, setCamera] = useState(false);
   const [settings, setSettings] = useState(readSettings);
   const [draft, setDraft] = useState<Settings>(settings);
+  const [photoPage, setPhotoPage] = useState(0);
   const [photos, setPhotos] = useState<Food[]>([]);
   const [phase, setPhase] = useState<"ready" | "scanning" | "result">("ready");
   const [tab, setTab] = useState("size");
@@ -49,6 +50,10 @@ export default function App() {
   const scan = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const all = [...foods, ...photos];
+  const page = Math.min(
+    photoPage,
+    Math.max(0, Math.ceil(photos.length / 3) - 1),
+  );
   const selected = all.filter((f) => settings.selected.includes(f.id));
   useEffect(() => {
     let live = true;
@@ -465,7 +470,7 @@ export default function App() {
             <X />
           </button>
         </div>
-        <div className="modal-body">
+        <div className={`modal-body ${preview && !file ? "previewing" : ""}`}>
           {file ? (
             <PhotoEditor
               file={file}
@@ -617,7 +622,7 @@ export default function App() {
                     </div>
                     {photos.length ? (
                       <div className="food-grid custom-foods">
-                        {photos.map((f) => (
+                        {photos.slice(page * 3, page * 3 + 3).map((f) => (
                           <div className="custom-food" key={f.id}>
                             <button
                               className={`food-option ${draft.selected.includes(f.id) ? "selected" : ""}`}
@@ -647,6 +652,30 @@ export default function App() {
                         把熟悉的家常菜，也变成探索里的小惊喜。
                       </p>
                     )}
+                    {photos.length > 3 && (
+                      <nav
+                        className="photo-pagination"
+                        aria-label="食物照片分页"
+                      >
+                        <button
+                          className="secondary"
+                          disabled={page === 0}
+                          onClick={() => setPhotoPage(page - 1)}
+                        >
+                          上一页
+                        </button>
+                        <span>
+                          {page + 1} / {Math.ceil(photos.length / 3)}
+                        </span>
+                        <button
+                          className="secondary"
+                          disabled={(page + 1) * 3 >= photos.length}
+                          onClick={() => setPhotoPage(page + 1)}
+                        >
+                          下一页
+                        </button>
+                      </nav>
+                    )}
                     <p className="muted">
                       清理浏览器网站数据会删除照片。取消选中仅隐藏食物；删除会移出素材库。
                     </p>
@@ -660,6 +689,7 @@ export default function App() {
                       {(
                         [
                           ["cry", "😭", "哭泣"],
+                          ["sad", "🙁", "不高兴"],
                           ["smile", "🙂", "微笑"],
                           ["laugh", "😄", "大笑"],
                         ] as const
@@ -772,19 +802,6 @@ export default function App() {
                         <span />
                       </button>
                     </div>
-                    <div className="info-card">
-                      <h3>留一点时间，聊聊食物</h3>
-                      <p>
-                        “你认出了哪些食物？”
-                        <br />
-                        “今天你最喜欢哪一种味道？”
-                        <br />
-                        “现在小肚子的感觉怎么样？”
-                      </p>
-                    </div>
-                    <p className="muted">
-                      无需账号，照片不上传。相机入口是否直接打开相机取决于手机浏览器。
-                    </p>
                     <button
                       className="text-button"
                       onClick={() =>

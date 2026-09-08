@@ -134,6 +134,13 @@ export default function Stomach({
                   stroke="none"
                 />
               </>
+            ) : expression === "sad" ? (
+              <>
+                <path d="M175 88l10 4M204 92l10-4" fill="none" />
+                <circle cx="181" cy="96" r="3" fill="#79594f" stroke="none" />
+                <circle cx="208" cy="96" r="3" fill="#79594f" stroke="none" />
+                <path d="M186 111Q195 101 204 111" fill="none" />
+              </>
             ) : expression === "laugh" ? (
               <>
                 <path
