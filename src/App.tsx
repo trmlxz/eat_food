@@ -26,6 +26,7 @@ import {
   levels,
   photoStore,
   readSettings,
+  settingsKey,
   type Food,
   type Settings,
 } from "./data";
@@ -255,7 +256,7 @@ export default function App() {
     if (!liveSettings) return;
     setSettings(next);
     try {
-      localStorage.setItem("tummy-settings-v2", JSON.stringify(next));
+      localStorage.setItem(settingsKey, JSON.stringify(next));
       setError("");
     } catch {
       setError("配置已即时生效，但未能保存；请检查浏览器存储空间。");
@@ -289,7 +290,7 @@ export default function App() {
   }
   function save() {
     try {
-      localStorage.setItem("tummy-settings-v2", JSON.stringify(draft));
+      localStorage.setItem(settingsKey, JSON.stringify(draft));
       setSettings(draft);
       setPhase("ready");
       dialog.current?.close();
@@ -329,7 +330,7 @@ export default function App() {
           settings.selected.includes(food.id)
         ) {
           try {
-            localStorage.setItem("tummy-settings-v2", JSON.stringify(next));
+            localStorage.setItem(settingsKey, JSON.stringify(next));
           } catch {
             setError("照片已删除，但未能保存设置；请检查浏览器存储空间。");
           }
@@ -708,7 +709,7 @@ export default function App() {
                   <>
                     <div className="section-heading">
                       <h3>这次，是多大的小肚子？</h3>
-                      <span>6 个探索等级</span>
+                      <span>{levels.length} 个探索等级</span>
                     </div>
                     <div className="level-grid">
                       {levels.map((name, i) => (

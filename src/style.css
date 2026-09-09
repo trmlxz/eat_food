@@ -905,21 +905,39 @@ h1 svg {
   color: #939e87;
 }
 .switch {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  gap: 5px;
   border-radius: 30px;
   background: #dfe6d7;
   width: 65px;
   height: 35px;
   padding: 5px;
+  transition: background 0.2s ease;
 }
+/* The knob is absolutely placed so it can travel; a single flex child would
+   just sit centred and only the track colour would appear to change. */
 .switch span {
+  position: absolute;
+  left: 5px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: white;
+  transition: transform 0.2s ease;
+}
+/* 65 wide - 5 padding each side - 24 knob = 31 of travel. */
+.switch.on span {
+  transform: translateX(31px);
+}
+/* Keep the icon on the side the knob is not occupying. */
+.switch svg {
+  position: absolute;
+  right: 9px;
+}
+.switch.on svg {
+  right: auto;
+  left: 9px;
 }
 .switch.on {
   background: var(--green);

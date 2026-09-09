@@ -16,7 +16,7 @@ export default function Stomach({
   motion?: Pick<Settings, "motion" | "motionSpeed" | "motionAmplitude">;
 }) {
   const id = useId().replace(/:/g, "");
-  const scale = [0.36, 0.54, 0.75, 1, 1.5, 2.2][level - 1];
+  const scale = [0.36, 0.54, 0.75, 1, 1.5, 1.8, 2.2][level - 1];
   const columns = Math.max(1, Math.ceil(Math.sqrt(items.length)));
   const rows = Math.max(1, Math.ceil(items.length / columns));
   const size = Math.min(68, 108 / Math.max(columns, rows));

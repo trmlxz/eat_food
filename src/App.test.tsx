@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
-import { readSettings, defaults, foods, photoStore } from "./data";
+import { readSettings, defaults, foods, photoStore, settingsKey } from "./data";
 vi.mock("./data", async (importOriginal) => {
   const original = await importOriginal<typeof import("./data")>();
   return { ...original, photoStore: vi.fn(async () => []) };
@@ -39,14 +39,14 @@ describe("scan experience", () => {
   it("saves size and multiple food selections, then shows them in the scan", async () => {
     await mount();
     settings();
-    fireEvent.click(screen.getByRole("button", { name: /06.*大苹果/ }));
+    fireEvent.click(screen.getByRole("button", { name: /07.*大苹果/ }));
     fireEvent.click(screen.getByRole("tab", { name: "食物朋友" }));
     fireEvent.click(screen.getByRole("button", { name: "🍓草莓" }));
     fireEvent.click(screen.getByRole("button", { name: "🍎苹果" }));
     fireEvent.click(screen.getByRole("button", { name: "保存设置" }));
     expect(readSettings()).toEqual({
       debugEnabled: false,
-      level: 6,
+      level: 7,
       selected: ["strawberry", "apple"],
       craving: null,
       expression: "smile",
@@ -59,8 +59,8 @@ describe("scan experience", () => {
     fireEvent.click(screen.getByRole("button", { name: "开始" }));
     fireEvent.click(screen.getByRole("button", { name: "开始扫描" }));
     act(() => vi.advanceTimersByTime(4000));
-    const img = screen.getByRole("img", { name: /6级胃部示意图/ });
-    expect(img).toHaveAccessibleName("6级胃部示意图，苹果、草莓");
+    const img = screen.getByRole("img", { name: /7级胃部示意图/ });
+    expect(img).toHaveAccessibleName("7级胃部示意图，苹果、草莓");
     vi.useRealTimers();
   });
   it("does not apply cancelled settings and offers a preview", async () => {
@@ -81,10 +81,10 @@ describe("scan experience", () => {
     );
   });
   it("recovers safely from corrupt stored settings", () => {
-    localStorage.setItem("tummy-settings-v2", "{bad");
+    localStorage.setItem(settingsKey, "{bad");
     expect(readSettings()).toEqual(defaults);
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({
         level: 99,
         selected: [null, "apple", 3],
@@ -161,9 +161,9 @@ it("previews motion, persists its levels, and can disable it", async () => {
     motionAmplitude: 4,
   });
 });
-it("migrates old settings and rejects invalid motion levels", () => {
+it("falls back to defaults for missing and invalid fields", () => {
   localStorage.setItem(
-    "tummy-settings-v2",
+    settingsKey,
     JSON.stringify({ level: 4, selected: ["apple"], sound: true }),
   );
   expect(readSettings()).toMatchObject({
@@ -174,7 +174,7 @@ it("migrates old settings and rejects invalid motion levels", () => {
     motionAmplitude: 2,
   });
   localStorage.setItem(
-    "tummy-settings-v2",
+    settingsKey,
     JSON.stringify({ motion: "true", motionSpeed: 0, motionAmplitude: 6 }),
   );
   expect(readSettings()).toMatchObject({
@@ -206,22 +206,9 @@ it("starts with an empty stomach and cancels an active scan when leaving camera 
   expect(document.body.style.overflow).not.toBe("hidden");
   vi.useRealTimers();
 });
-it("clears legacy automatic foods while preserving the other settings", () => {
-  localStorage.setItem(
-    "tummy-settings",
-    JSON.stringify({
-      level: 6,
-      selected: ["apple", "rice", "banana"],
-      motion: true,
-      motionSpeed: 5,
-    }),
-  );
-  expect(readSettings()).toMatchObject({
-    level: 6,
-    selected: [],
-    motion: true,
-    motionSpeed: 5,
-  });
+it("rejects a level beyond the seven that exist", () => {
+  localStorage.setItem(settingsKey, JSON.stringify({ level: 8 }));
+  expect(readSettings().level).toBe(defaults.level);
 });
 
 it("opens parent settings with two taps and persists the selected expression", async () => {
@@ -279,10 +266,7 @@ describe("live configuration", () => {
 
   it("hides the entry by default, including for legacy settings", async () => {
     expect(readSettings().debugEnabled).toBe(false);
-    localStorage.setItem(
-      "tummy-settings-v2",
-      JSON.stringify({ debugEnabled: "true" }),
-    );
+    localStorage.setItem(settingsKey, JSON.stringify({ debugEnabled: "true" }));
     await mount();
     fireEvent.click(screen.getByRole("button", { name: "开始" }));
     expect(
@@ -313,11 +297,11 @@ describe("live configuration", () => {
     });
     fireEvent.click(screen.getByRole("switch", { name: "扫描音效" }));
     fireEvent.click(screen.getByRole("tab", { name: "胃部大小" }));
-    fireEvent.click(screen.getByRole("button", { name: /06.*大苹果/ }));
+    fireEvent.click(screen.getByRole("button", { name: /07.*大苹果/ }));
     fireEvent.click(screen.getByRole("tab", { name: "食物朋友" }));
     fireEvent.click(screen.getByRole("button", { name: "🍎苹果" }));
     expect(within(stage).getByRole("img")).toHaveAccessibleName(
-      "6级胃部示意图，苹果",
+      "7级胃部示意图，苹果",
     );
     expect(stage.querySelector("[data-expression='sad']")).toBeInTheDocument();
     expect(stage.querySelector(".stomach-motion")).toHaveClass("active");
@@ -329,7 +313,7 @@ describe("live configuration", () => {
     );
     expect(readSettings()).toMatchObject({
       debugEnabled: true,
-      level: 6,
+      level: 7,
       selected: ["apple"],
       expression: "sad",
       sound: true,
@@ -340,11 +324,11 @@ describe("live configuration", () => {
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(within(stage).getByRole("img")).toHaveAccessibleName(
-      "6级胃部示意图，苹果",
+      "7级胃部示意图，苹果",
     );
     fireEvent.click(screen.getByRole("button", { name: "打开即时配置" }));
     fireEvent.click(screen.getByRole("tab", { name: "胃部大小" }));
-    expect(screen.getByRole("button", { name: /06.*大苹果/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /07.*大苹果/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -454,7 +438,7 @@ describe("food thought bubble", () => {
 
   it("restores saved cravings, discards cancelled edits, and can disable or reset the bubble", async () => {
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({ ...defaults, craving: "banana" }),
     );
     await mount();
@@ -491,7 +475,7 @@ describe("food thought bubble", () => {
 
   it("updates the live result without replacing the draggable stomach", async () => {
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({ ...defaults, debugEnabled: true }),
     );
     await mount();
@@ -519,14 +503,14 @@ describe("food thought bubble", () => {
   it.each([undefined, null, 123, true, [], {}, "", "  "])(
     "defaults missing or invalid stored cravings (%j) to disabled",
     (craving) => {
-      localStorage.setItem("tummy-settings-v2", JSON.stringify({ craving }));
+      localStorage.setItem(settingsKey, JSON.stringify({ craving }));
       expect(readSettings().craving).toBeNull();
     },
   );
 
   it("hides a craving whose food is no longer available", async () => {
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({ ...defaults, craving: "missing-photo" }),
     );
     await mount();
@@ -548,7 +532,7 @@ describe("food thought bubble", () => {
   it("supports custom photos and clears a deleted craving without saving unrelated drafts", async () => {
     vi.mocked(photoStore).mockResolvedValueOnce([photo]);
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({ ...defaults, selected: ["apple"] }),
     );
     await mount();
@@ -587,7 +571,7 @@ describe("food thought bubble", () => {
   it("keeps the craving when its photo cannot be deleted", async () => {
     vi.mocked(photoStore).mockResolvedValueOnce([photo]);
     localStorage.setItem(
-      "tummy-settings-v2",
+      settingsKey,
       JSON.stringify({ ...defaults, craving: photo.id }),
     );
     await mount();

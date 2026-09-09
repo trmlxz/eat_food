@@ -11,18 +11,57 @@ export type Settings = {
   motionSpeed: number;
   motionAmplitude: number;
 };
-export const levels = ["蓝莓", "草莓", "小枣", "鸡蛋", "苹果", "大苹果"];
-export const levelIcons = ["🫐", "🍓", "🟤", "🥚", "🍎", "🍎"];
+export const settingsKey = "tummy-settings-v3";
+export const levels = [
+  "蓝莓",
+  "草莓",
+  "小枣",
+  "鸡蛋",
+  "苹果",
+  "中苹果",
+  "大苹果",
+];
+export const levelIcons = ["🫐", "🍓", "🟤", "🥚", "🍎", "🍎", "🍎"];
 export const foods: Food[] = [
+  // 水果
   ["apple", "苹果", "🍎"],
   ["banana", "香蕉", "🍌"],
   ["strawberry", "草莓", "🍓"],
   ["grape", "葡萄", "🍇"],
   ["orange", "橙子", "🍊"],
   ["watermelon", "西瓜", "🍉"],
+  ["pear", "梨", "🍐"],
+  ["peach", "桃子", "🍑"],
+  // 主食
   ["rice", "米饭", "🍚"],
   ["bun", "馒头", "🥟"],
   ["noodles", "面条", "🍜"],
+  ["friedrice", "炒饭", "🍛"],
+  ["dumpling", "饺子", "🥟"],
+  ["baozi", "包子", "🫓"],
+  ["bread", "面包", "🍞"],
+  ["porridge", "粥", "🥣"],
+  // 肉与水产
+  ["ribs", "排骨", "🍖"],
+  ["beef", "牛肉", "🥩"],
+  ["pork", "猪肉", "🥓"],
+  ["lamb", "羊肉", "🍢"],
+  ["chicken", "鸡肉", "🍗"],
+  ["fish", "鱼", "🐟"],
+  ["shrimp", "虾", "🍤"],
+  // 蔬菜
+  ["broccoli", "西蓝花", "🥦"],
+  ["greens", "青菜", "🥬"],
+  ["corn", "玉米", "🌽"],
+  ["carrot", "胡萝卜", "🥕"],
+  ["tomato", "西红柿", "🍅"],
+  ["potato", "土豆", "🥔"],
+  ["cucumber", "黄瓜", "🥒"],
+  ["mushroom", "蘑菇", "🍄"],
+  // 饮品与其他
+  ["milk", "牛奶", "🥛"],
+  ["soymilk", "豆浆", "🥤"],
+  ["peanut", "花生", "🥜"],
 ].map(([id, name, emoji]) => ({
   id,
   name,
@@ -42,19 +81,17 @@ export const defaults: Settings = {
 };
 export function readSettings(): Settings {
   try {
-    const stored = localStorage.getItem("tummy-settings-v2");
-    const s = JSON.parse(
-      stored || localStorage.getItem("tummy-settings") || "null",
-    );
+    const s = JSON.parse(localStorage.getItem(settingsKey) || "null");
     if (!s) return { ...defaults };
     return {
       debugEnabled: s.debugEnabled === true,
       level:
-        Number.isInteger(s.level) && s.level >= 1 && s.level <= 6 ? s.level : 4,
-      selected:
-        stored && Array.isArray(s.selected)
-          ? s.selected.filter((v: unknown) => typeof v === "string")
-          : defaults.selected,
+        Number.isInteger(s.level) && s.level >= 1 && s.level <= levels.length
+          ? s.level
+          : defaults.level,
+      selected: Array.isArray(s.selected)
+        ? s.selected.filter((v: unknown) => typeof v === "string")
+        : defaults.selected,
       craving:
         typeof s.craving === "string" && s.craving.trim()
           ? s.craving
