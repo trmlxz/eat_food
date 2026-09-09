@@ -1,0 +1,27 @@
+{
+  "name": "小肚子雷达",
+  "short_name": "小肚子雷达",
+  "description": "陪孩子探索食物的小肚子雷达，家长可设置的趣味模拟扫描。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8f7f2",
+  "theme_color": "#f8f7f2",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

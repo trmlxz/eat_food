@@ -13,6 +13,16 @@
     />
     <title>小肚子雷达 · 每一口，都有小发现</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <!-- iOS only reads a PNG here, and applies its own rounded mask. -->
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Without this, Add to Home Screen just opens Safari with its chrome. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="小肚子雷达" />
+    <!-- "default" keeps content below the status bar. black-translucent would
+         need safe-area padding on the normal page, which only camera mode has. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
     <div id="root"></div>

@@ -94,7 +94,7 @@ export const defaults: Settings = {
   level: 4,
   selected: [],
   craving: null,
-  sound: false,
+  sound: true,
   motion: false,
   motionSpeed: 3,
   motionAmplitude: 2,
@@ -119,7 +119,7 @@ export function readSettings(): Settings {
       expression: ["cry", "sad", "smile", "laugh"].includes(s.expression)
         ? s.expression
         : "smile",
-      sound: s.sound === true,
+      sound: typeof s.sound === "boolean" ? s.sound : defaults.sound,
       motion: s.motion === true,
       motionSpeed:
         Number.isInteger(s.motionSpeed) &&
