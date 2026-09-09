@@ -529,6 +529,45 @@ describe("food thought bubble", () => {
     image: "data:image/jpeg;base64,c291cA==",
   };
 
+  it("groups built-in foods by category and keeps photos in their own group", async () => {
+    vi.mocked(photoStore).mockResolvedValueOnce([photo]);
+    await mount();
+    settings();
+    fireEvent.click(screen.getByRole("tab", { name: "食物朋友" }));
+    const titles = () =>
+      [...document.querySelectorAll(".food-group h4")].map(
+        (h) => h.textContent,
+      );
+    expect(titles()).toEqual([
+      "水果",
+      "主食",
+      "肉与水产",
+      "蔬菜",
+      "饮品与其他",
+    ]);
+    // Every built-in food lands in exactly one group.
+    expect(document.querySelectorAll(".food-group .food-option")).toHaveLength(
+      foods.length,
+    );
+    // Photos stay outside the category groups, under their own heading.
+    expect(
+      screen.getByRole("heading", { name: "自己的食物库" }),
+    ).toBeInTheDocument();
+
+    openCravings();
+    expect(titles()).toEqual([
+      "水果",
+      "主食",
+      "肉与水产",
+      "蔬菜",
+      "饮品与其他",
+      "我的照片",
+    ]);
+    expect(
+      screen.getByRole("button", { name: "想吃南瓜汤" }),
+    ).toBeInTheDocument();
+  });
+
   it("supports custom photos and clears a deleted craving without saving unrelated drafts", async () => {
     vi.mocked(photoStore).mockResolvedValueOnce([photo]);
     localStorage.setItem(

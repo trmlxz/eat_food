@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import {
   defaults,
+  foodGroups,
   foods,
   levelIcons,
   levels,
@@ -298,6 +299,43 @@ export default function App() {
       setError("设置未保存，浏览器存储可能已满。请释放空间后重试。");
     }
   }
+  const foodButton = (f: Food) => (
+    <button
+      key={f.id}
+      className={`food-option ${draft.selected.includes(f.id) ? "selected" : ""}`}
+      aria-pressed={draft.selected.includes(f.id)}
+      onClick={() => toggle(f.id)}
+    >
+      <span>
+        {f.image ? (
+          <img className="builtin-image" src={f.image} alt="" />
+        ) : (
+          f.emoji
+        )}
+      </span>
+      {f.name}
+      {draft.selected.includes(f.id) && (
+        <Check className="selected-check" size={14} />
+      )}
+    </button>
+  );
+  const cravingButton = (f: Food) => (
+    <button
+      key={f.id}
+      className={`food-option ${draft.craving === f.id ? "selected" : ""}`}
+      aria-label={`想吃${f.name}`}
+      aria-pressed={draft.craving === f.id}
+      onClick={() => changeDraft((d) => ({ ...d, craving: f.id }))}
+    >
+      {f.image ? (
+        <img src={f.image} alt="" />
+      ) : (
+        <span aria-hidden="true">{f.emoji}</span>
+      )}
+      {f.name}
+      {draft.craving === f.id && <Check className="selected-check" size={14} />}
+    </button>
+  );
   function toggle(id: string) {
     changeDraft((d) => ({
       ...d,
@@ -764,32 +802,14 @@ export default function App() {
                         种
                       </span>
                     </div>
-                    <div className="food-grid">
-                      {foods.map((f) => (
-                        <button
-                          key={f.id}
-                          className={`food-option ${draft.selected.includes(f.id) ? "selected" : ""}`}
-                          aria-pressed={draft.selected.includes(f.id)}
-                          onClick={() => toggle(f.id)}
-                        >
-                          <span>
-                            {f.image ? (
-                              <img
-                                className="builtin-image"
-                                src={f.image}
-                                alt=""
-                              />
-                            ) : (
-                              f.emoji
-                            )}
-                          </span>
-                          {f.name}
-                          {draft.selected.includes(f.id) && (
-                            <Check className="selected-check" size={14} />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    {foodGroups.map((group) => (
+                      <section className="food-group" key={group.key}>
+                        <h4>{group.name}</h4>
+                        <div className="food-grid">
+                          {group.items.map(foodButton)}
+                        </div>
+                      </section>
+                    ))}
                     <div className="section-heading">
                       <h3>自己的食物库</h3>
                       <span>照片仅保存在本机</span>
@@ -886,46 +906,40 @@ export default function App() {
                     <p className="muted">
                       在胃部右上角，用一个思考气泡说出小肚子的愿望。
                     </p>
-                    <div
-                      className="food-grid craving-grid"
-                      aria-label="想吃的食物"
-                    >
-                      <button
-                        className={`food-option ${!draftCraving ? "selected" : ""}`}
-                        aria-pressed={!draftCraving}
-                        onClick={() =>
-                          changeDraft((d) => ({ ...d, craving: null }))
-                        }
-                      >
-                        <span aria-hidden="true">
-                          <MessageCircle size={24} />
-                        </span>
-                        不显示气泡
-                        {!draftCraving && (
-                          <Check className="selected-check" size={14} />
-                        )}
-                      </button>
-                      {all.map((f) => (
+                    <div className="craving-groups" aria-label="想吃的食物">
+                      <div className="food-grid craving-grid">
                         <button
-                          key={f.id}
-                          className={`food-option ${draft.craving === f.id ? "selected" : ""}`}
-                          aria-label={`想吃${f.name}`}
-                          aria-pressed={draft.craving === f.id}
+                          className={`food-option ${!draftCraving ? "selected" : ""}`}
+                          aria-pressed={!draftCraving}
                           onClick={() =>
-                            changeDraft((d) => ({ ...d, craving: f.id }))
+                            changeDraft((d) => ({ ...d, craving: null }))
                           }
                         >
-                          {f.image ? (
-                            <img src={f.image} alt="" />
-                          ) : (
-                            <span aria-hidden="true">{f.emoji}</span>
-                          )}
-                          {f.name}
-                          {draft.craving === f.id && (
+                          <span aria-hidden="true">
+                            <MessageCircle size={24} />
+                          </span>
+                          不显示气泡
+                          {!draftCraving && (
                             <Check className="selected-check" size={14} />
                           )}
                         </button>
+                      </div>
+                      {foodGroups.map((group) => (
+                        <section className="food-group" key={group.key}>
+                          <h4>{group.name}</h4>
+                          <div className="food-grid craving-grid">
+                            {group.items.map(cravingButton)}
+                          </div>
+                        </section>
                       ))}
+                      {photos.length > 0 && (
+                        <section className="food-group">
+                          <h4>我的照片</h4>
+                          <div className="food-grid craving-grid">
+                            {photos.map(cravingButton)}
+                          </div>
+                        </section>
+                      )}
                     </div>
                     <div className="stomach-preview" aria-label="想吃食物预览">
                       <Stomach

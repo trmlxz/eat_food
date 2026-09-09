@@ -1,4 +1,19 @@
-export type Food = { id: string; name: string; emoji?: string; image?: string };
+export type FoodCategory =
+  "fruit" | "staple" | "protein" | "vegetable" | "other";
+export type Food = {
+  id: string;
+  name: string;
+  category?: FoodCategory;
+  emoji?: string;
+  image?: string;
+};
+export const foodCategories: { key: FoodCategory; name: string }[] = [
+  { key: "fruit", name: "水果" },
+  { key: "staple", name: "主食" },
+  { key: "protein", name: "肉与水产" },
+  { key: "vegetable", name: "蔬菜" },
+  { key: "other", name: "饮品与其他" },
+];
 export type Expression = "cry" | "sad" | "smile" | "laugh";
 export type Settings = {
   debugEnabled: boolean;
@@ -24,49 +39,54 @@ export const levels = [
 export const levelIcons = ["🫐", "🍓", "🟤", "🥚", "🍎", "🍎", "🍎"];
 export const foods: Food[] = [
   // 水果
-  ["apple", "苹果", "🍎"],
-  ["banana", "香蕉", "🍌"],
-  ["strawberry", "草莓", "🍓"],
-  ["grape", "葡萄", "🍇"],
-  ["orange", "橙子", "🍊"],
-  ["watermelon", "西瓜", "🍉"],
-  ["pear", "梨", "🍐"],
-  ["peach", "桃子", "🍑"],
+  ["apple", "苹果", "🍎", "fruit"],
+  ["banana", "香蕉", "🍌", "fruit"],
+  ["strawberry", "草莓", "🍓", "fruit"],
+  ["grape", "葡萄", "🍇", "fruit"],
+  ["orange", "橙子", "🍊", "fruit"],
+  ["watermelon", "西瓜", "🍉", "fruit"],
+  ["pear", "梨", "🍐", "fruit"],
+  ["peach", "桃子", "🍑", "fruit"],
   // 主食
-  ["rice", "米饭", "🍚"],
-  ["bun", "馒头", "🥟"],
-  ["noodles", "面条", "🍜"],
-  ["friedrice", "炒饭", "🍛"],
-  ["dumpling", "饺子", "🥟"],
-  ["baozi", "包子", "🫓"],
-  ["bread", "面包", "🍞"],
-  ["porridge", "粥", "🥣"],
+  ["rice", "米饭", "🍚", "staple"],
+  ["bun", "馒头", "🥟", "staple"],
+  ["noodles", "面条", "🍜", "staple"],
+  ["friedrice", "炒饭", "🍛", "staple"],
+  ["dumpling", "饺子", "🥟", "staple"],
+  ["baozi", "包子", "🫓", "staple"],
+  ["bread", "面包", "🍞", "staple"],
+  ["porridge", "粥", "🥣", "staple"],
   // 肉与水产
-  ["ribs", "排骨", "🍖"],
-  ["beef", "牛肉", "🥩"],
-  ["pork", "猪肉", "🥓"],
-  ["lamb", "羊肉", "🍢"],
-  ["chicken", "鸡肉", "🍗"],
-  ["fish", "鱼", "🐟"],
-  ["shrimp", "虾", "🍤"],
+  ["ribs", "排骨", "🍖", "protein"],
+  ["beef", "牛肉", "🥩", "protein"],
+  ["pork", "猪肉", "🥓", "protein"],
+  ["lamb", "羊肉", "🍢", "protein"],
+  ["chicken", "鸡肉", "🍗", "protein"],
+  ["fish", "鱼", "🐟", "protein"],
+  ["shrimp", "虾", "🍤", "protein"],
   // 蔬菜
-  ["broccoli", "西蓝花", "🥦"],
-  ["greens", "青菜", "🥬"],
-  ["corn", "玉米", "🌽"],
-  ["carrot", "胡萝卜", "🥕"],
-  ["tomato", "西红柿", "🍅"],
-  ["potato", "土豆", "🥔"],
-  ["cucumber", "黄瓜", "🥒"],
-  ["mushroom", "蘑菇", "🍄"],
+  ["broccoli", "西蓝花", "🥦", "vegetable"],
+  ["greens", "青菜", "🥬", "vegetable"],
+  ["corn", "玉米", "🌽", "vegetable"],
+  ["carrot", "胡萝卜", "🥕", "vegetable"],
+  ["tomato", "西红柿", "🍅", "vegetable"],
+  ["potato", "土豆", "🥔", "vegetable"],
+  ["cucumber", "黄瓜", "🥒", "vegetable"],
+  ["mushroom", "蘑菇", "🍄", "vegetable"],
   // 饮品与其他
-  ["milk", "牛奶", "🥛"],
-  ["soymilk", "豆浆", "🥤"],
-  ["peanut", "花生", "🥜"],
-].map(([id, name, emoji]) => ({
+  ["milk", "牛奶", "🥛", "other"],
+  ["soymilk", "豆浆", "🥤", "other"],
+  ["peanut", "花生", "🥜", "other"],
+].map(([id, name, emoji, category]) => ({
   id,
   name,
   emoji,
+  category: category as FoodCategory,
   ...(id === "bun" ? { image: `${import.meta.env.BASE_URL}bun.svg` } : {}),
+}));
+export const foodGroups = foodCategories.map((c) => ({
+  ...c,
+  items: foods.filter((f) => f.category === c.key),
 }));
 export const defaults: Settings = {
   debugEnabled: false,

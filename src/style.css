@@ -806,6 +806,22 @@ h1 svg {
   line-height: 1.8;
   color: #969e8b;
 }
+.food-group {
+  margin-bottom: 14px;
+}
+.food-group:last-of-type {
+  margin-bottom: 0;
+}
+.food-group h4 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #8a927e;
+  margin-bottom: 7px;
+}
+.craving-groups > .food-grid {
+  margin-bottom: 14px;
+}
 .food-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
