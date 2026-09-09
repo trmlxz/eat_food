@@ -7,8 +7,10 @@ export default function Stomach({
   items,
   motion,
   expression = "smile",
+  craving,
 }: {
   expression?: Expression;
+  craving?: Food;
   level: number;
   items: Food[];
   motion?: Pick<Settings, "motion" | "motionSpeed" | "motionAmplitude">;
@@ -23,7 +25,7 @@ export default function Stomach({
       className="stomach"
       viewBox="20 4 260 264"
       role="img"
-      aria-label={`${level}级胃部示意图，${items.map((f) => f.name).join("、") || "没有选择食物"}`}
+      aria-label={`${level}级胃部示意图，${items.map((f) => f.name).join("、") || "没有选择食物"}${craving ? `，想吃${craving.name}` : ""}`}
     >
       <defs>
         <linearGradient id={`${id}fill`} x2=".8" y2="1">
@@ -40,6 +42,11 @@ export default function Stomach({
         <mask id={`${id}mask`} maskContentUnits="objectBoundingBox">
           <rect width="1" height="1" fill={`url(#${id}fade)`} />
         </mask>
+        {craving?.image && (
+          <clipPath id={`${id}craving-clip`}>
+            <rect x="208" y="20" width="48" height="44" rx="10" />
+          </clipPath>
+        )}
       </defs>
       <g transform={`translate(150 145) scale(${scale}) translate(-150 -145)`}>
         <g
@@ -166,6 +173,37 @@ export default function Stomach({
             )}
           </g>
         </g>
+        {craving && (
+          <g
+            className="thought-bubble"
+            data-craving={craving.id}
+            aria-hidden="true"
+          >
+            <g fill="#fffdf7" stroke="#dc987c" strokeWidth="2.3">
+              <circle cx="192" cy="96" r="3" />
+              <circle cx="202" cy="83" r="5" />
+              <path
+                d="M200 23C198 11 214 6 224 12C234 1 252 7 254 17C270 15 279 29 272 40C282 51 270 67 257 65C248 77 231 73 227 66C211 75 196 67 198 56C184 55 182 37 193 32C190 27 194 23 200 23Z"
+                strokeLinejoin="round"
+              />
+            </g>
+            {craving.image ? (
+              <image
+                href={craving.image}
+                x="208"
+                y="20"
+                width="48"
+                height="44"
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#${id}craving-clip)`}
+              />
+            ) : (
+              <text x="232" y="57" textAnchor="middle" fontSize="40">
+                {craving.emoji}
+              </text>
+            )}
+          </g>
+        )}
       </g>
     </svg>
   );

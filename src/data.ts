@@ -1,9 +1,11 @@
 export type Food = { id: string; name: string; emoji?: string; image?: string };
 export type Expression = "cry" | "sad" | "smile" | "laugh";
 export type Settings = {
+  debugEnabled: boolean;
   expression: Expression;
   level: number;
   selected: string[];
+  craving: string | null;
   sound: boolean;
   motion: boolean;
   motionSpeed: number;
@@ -28,9 +30,11 @@ export const foods: Food[] = [
   ...(id === "bun" ? { image: `${import.meta.env.BASE_URL}bun.svg` } : {}),
 }));
 export const defaults: Settings = {
+  debugEnabled: false,
   expression: "smile",
   level: 4,
   selected: [],
+  craving: null,
   sound: false,
   motion: false,
   motionSpeed: 3,
@@ -44,12 +48,17 @@ export function readSettings(): Settings {
     );
     if (!s) return { ...defaults };
     return {
+      debugEnabled: s.debugEnabled === true,
       level:
         Number.isInteger(s.level) && s.level >= 1 && s.level <= 6 ? s.level : 4,
       selected:
         stored && Array.isArray(s.selected)
           ? s.selected.filter((v: unknown) => typeof v === "string")
           : defaults.selected,
+      craving:
+        typeof s.craving === "string" && s.craving.trim()
+          ? s.craving
+          : defaults.craving,
       expression: ["cry", "sad", "smile", "laugh"].includes(s.expression)
         ? s.expression
         : "smile",

@@ -599,6 +599,10 @@ h1 svg {
   z-index: 2;
   overflow: visible;
 }
+.thought-bubble {
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px #79594f24);
+}
 .result .radar-disc {
   background: #f6f1e6;
 }
@@ -1345,7 +1349,7 @@ h1 svg {
   }
 }
 
-/* Camera mode fills the dynamic viewport, with controls outside the image area. */
+/* The result covers the viewport; controls float above it. */
 .camera-mode {
   position: fixed;
   inset: 0;
@@ -1355,6 +1359,7 @@ h1 svg {
   padding: 0;
   background: #030605;
   z-index: 20;
+  overflow: hidden;
 }
 .camera-mode > .topbar,
 .camera-mode > .site-footer,
@@ -1365,11 +1370,22 @@ h1 svg {
   height: 100%;
 }
 .camera-mode .scanner-card {
+  position: relative;
+  isolation: isolate;
   height: 100%;
   border: 0;
   border-radius: 0;
   background: #030605;
   box-shadow: none;
+}
+.camera-result {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+.camera-mode .result .radar-area {
+  visibility: hidden;
 }
 .camera-mode .card-top,
 .camera-mode .card-footer,
@@ -1394,6 +1410,7 @@ h1 svg {
   place-items: center;
 }
 .camera-mode .scanner-layout {
+  pointer-events: none;
   height: 100%;
   display: grid;
   grid-template-columns: 1fr;
@@ -1439,12 +1456,15 @@ h1 svg {
   );
 }
 .camera-mode .scan-copy {
+  position: relative;
+  z-index: 3;
   padding: 8px 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .camera-mode .scan-button {
+  pointer-events: auto;
   width: 170px;
   max-width: 100%;
   height: 64px;
@@ -1461,19 +1481,6 @@ h1 svg {
 }
 .camera-mode .scan-button > svg:first-child {
   margin-right: 0;
-}
-.camera-mode .result .radar-disc {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  overflow: visible;
-}
-.camera-mode .result .radar-disc > :not(.stomach-drag-surface) {
-  display: none;
 }
 .camera-mode .stomach {
   display: block;
@@ -1504,11 +1511,28 @@ h1 svg {
 .stomach-drag-surface {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: grab;
+}
+
+.camera-options {
+  position: absolute;
+  z-index: 5;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 10px 15px;
+  color: #e3ece7;
+  background: #153629e6;
+  border: 1px solid #73978166;
+  border-radius: 24px;
+  font-size: 13px;
 }
 .stomach-drag-surface.dragging {
   cursor: grabbing;
@@ -1597,6 +1621,11 @@ h1 svg {
 }
 .modal-body .food-grid {
   gap: 6px;
+}
+.craving-grid .food-option > span {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
 }
 .modal-body .upload-actions > label {
   padding: 10px;
@@ -1752,4 +1781,43 @@ h1 svg {
   .modal-body.previewing .stomach-preview {
     height: 50dvh;
   }
+}
+
+/* A non-modal panel keeps the rest of the full-screen result interactive. */
+.settings-dialog.live-settings {
+  position: fixed;
+  inset: calc(62px + env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right)) auto auto;
+  z-index: 10;
+  margin: 0;
+  width: min(360px, calc(100% - 24px));
+  max-height: calc(100dvh - 80px - env(safe-area-inset-top));
+  background: #fffefaed;
+  border-color: #a8c7b6;
+  box-shadow: 0 10px 40px #0005;
+}
+.live-settings[open] {
+  display: flex;
+  flex-direction: column;
+}
+.live-settings .modal-header,
+.live-settings .modal-footer {
+  flex-shrink: 0;
+  padding: 10px 14px;
+}
+.live-settings .modal-body {
+  min-height: 0;
+  max-height: min(45dvh, 380px);
+  padding: 8px 14px;
+}
+.live-settings .stomach-preview,
+.live-settings .mini-label {
+  display: none;
+}
+.live-settings .modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.live-settings .modal-footer {
+  align-items: center;
 }

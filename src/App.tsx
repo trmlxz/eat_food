@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   ArrowRight,
   AudioLines,
@@ -8,6 +8,7 @@ import {
   Heart,
   ImagePlus,
   LockKeyhole,
+  MessageCircle,
   Radar,
   RotateCcw,
   Settings2,
@@ -32,10 +33,123 @@ import Stomach from "./Stomach";
 import DraggableStomach from "./DraggableStomach";
 import PhotoEditor from "./PhotoEditor";
 
+/** Scan audio runs through a compressor so it stays loud without clipping. */
+function audioBus(ctx: AudioContext) {
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -10;
+  comp.knee.value = 10;
+  comp.ratio.value = 4;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.12;
+  const master = ctx.createGain();
+  master.gain.value = 1;
+  comp.connect(master);
+  master.connect(ctx.destination);
+  return comp;
+}
+
+/**
+ * Rhythm of the scan: [start, length, hz] triples. Short 0.09s beeps read as
+ * "滴", longer 0.28s ones as "嘟". Pitches come from a C major pentatonic
+ * scale, so every combination stays consonant no matter how they overlap.
+ * Beeps sit close together inside a burst and the bursts are spaced apart,
+ * which keeps the pattern dense without turning into a flat stream.
+ */
+const scanBeeps: [number, number, number][] = [
+  [0.0, 0.09, 523.25],
+  [0.16, 0.09, 659.25],
+  [0.32, 0.28, 783.99],
+  [1.1, 0.09, 659.25],
+  [1.26, 0.09, 783.99],
+  [1.42, 0.28, 880.0],
+  [2.2, 0.09, 783.99],
+  [2.36, 0.09, 880.0],
+  [2.52, 0.09, 1046.5],
+  [2.68, 0.3, 1174.66],
+  [3.05, 0.08, 1046.5],
+  [3.22, 0.08, 1174.66],
+];
+
+/** Reduced-motion scans last 600ms, so they get a two-beep version. */
+const quickBeeps: [number, number, number][] = [
+  [0.0, 0.08, 783.99],
+  [0.14, 0.18, 1046.5],
+];
+
+/** One beep: sine body plus a quiet octave for sparkle, softened by a lowpass. */
+function beep(
+  ctx: AudioContext,
+  bus: AudioNode,
+  at: number,
+  len: number,
+  freq: number,
+) {
+  const level = len > 0.15 ? 0.24 : 0.28;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 5000;
+  filter.Q.value = 0.7;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.linearRampToValueAtTime(level, at + 0.008);
+  gain.gain.setValueAtTime(level, at + Math.max(0.014, len - 0.05));
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  filter.connect(gain);
+  gain.connect(bus);
+  const voices: [OscillatorType, number, number][] = [
+    ["sine", 1, 1],
+    ["triangle", 2, 0.18],
+  ];
+  return voices.map(([type, multiple, mix]) => {
+    const osc = ctx.createOscillator();
+    const trim = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq * multiple;
+    trim.gain.value = mix;
+    osc.connect(trim);
+    trim.connect(filter);
+    osc.start(at);
+    osc.stop(at + len + 0.02);
+    return osc;
+  });
+}
+
+/**
+ * Completion chime. The pitch is 1320 Hz, but what makes it read as a crisp
+ * "叮" rather than a soft tone is the attack: all partials strike within
+ * 1.5ms, and the high ones (4.2x and above) decay in well under a fifth of a
+ * second, leaving only the low partials ringing.
+ */
+function ding(ctx: AudioContext, bus: AudioNode, at: number) {
+  const partials: [number, number, number][] = [
+    [1, 0.26, 1.4],
+    [2, 0.15, 0.85],
+    [3.01, 0.13, 0.42],
+    [4.2, 0.1, 0.2],
+    [5.43, 0.08, 0.12],
+    [6.8, 0.05, 0.06],
+  ];
+  return partials.map(([ratio, level, decay]) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 1320 * ratio;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(level, at + 0.0015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+    osc.connect(gain);
+    gain.connect(bus);
+    osc.start(at);
+    osc.stop(at + decay + 0.05);
+    return osc;
+  });
+}
+
 export default function App() {
   const [camera, setCamera] = useState(false);
   const [settings, setSettings] = useState(readSettings);
   const [draft, setDraft] = useState<Settings>(settings);
+  const [liveSettings, setLiveSettings] = useState(false);
   const [photoPage, setPhotoPage] = useState(0);
   const [photos, setPhotos] = useState<Food[]>([]);
   const [phase, setPhase] = useState<"ready" | "scanning" | "result">("ready");
@@ -49,12 +163,16 @@ export default function App() {
   const lastParentTap = useRef<number | null>(null);
   const scan = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audio = useRef<AudioContext | null>(null);
+  const bus = useRef<AudioNode | null>(null);
+  const tones = useRef<OscillatorNode[]>([]);
   const all = [...foods, ...photos];
   const page = Math.min(
     photoPage,
     Math.max(0, Math.ceil(photos.length / 3) - 1),
   );
   const selected = all.filter((f) => settings.selected.includes(f.id));
+  const craving = all.find((f) => f.id === settings.craving);
+  const draftCraving = all.find((f) => f.id === draft.craving);
   useEffect(() => {
     let live = true;
     photoStore("read")
@@ -70,8 +188,20 @@ export default function App() {
       void audio.current?.close();
     };
   }, []);
+  function silence() {
+    for (const osc of tones.current) {
+      try {
+        osc.stop();
+      } catch {
+        /* Already finished. */
+      }
+    }
+    tones.current = [];
+  }
   function leaveCamera() {
     if (scan.current) clearTimeout(scan.current);
+    silence();
+    closeSettings();
     setPhase("ready");
     setCamera(false);
   }
@@ -80,56 +210,82 @@ export default function App() {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") leaveCamera();
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (dialog.current?.open) {
+        event.preventDefault();
+        if (file) setFile(null);
+        else closeSettings();
+      } else leaveCamera();
     };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
     };
-  }, [camera]);
+  }, [camera, file]);
   function openSettings() {
+    setLiveSettings(false);
     setDraft({ ...settings, selected: [...settings.selected] });
     setPreview(false);
     setFile(null);
     lastParentTap.current = null;
     dialog.current?.showModal();
   }
+  function closeSettings() {
+    dialog.current?.close();
+    setLiveSettings(false);
+    setFile(null);
+  }
+  function openLiveSettings() {
+    if (!settings.debugEnabled) return;
+    if (scan.current) clearTimeout(scan.current);
+    silence();
+    setPhase("result");
+    setDraft({ ...settings, selected: [...settings.selected] });
+    setPreview(false);
+    setFile(null);
+    setError("");
+    setLiveSettings(true);
+    // A non-modal panel leaves the stomach visible and draggable behind it.
+    dialog.current?.show();
+  }
+  function changeDraft(update: SetStateAction<Settings>) {
+    const next = typeof update === "function" ? update(draft) : update;
+    setDraft(next);
+    if (!liveSettings) return;
+    setSettings(next);
+    try {
+      localStorage.setItem("tummy-settings-v2", JSON.stringify(next));
+      setError("");
+    } catch {
+      setError("配置已即时生效，但未能保存；请检查浏览器存储空间。");
+    }
+    if (!next.debugEnabled) closeSettings();
+  }
   function start() {
     if (phase === "scanning") return;
     setPhase("scanning");
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const duration = reduced ? 600 : 4000;
     if (settings.sound) {
       try {
         const ctx = audio.current ?? new AudioContext();
         audio.current = ctx;
+        bus.current ??= audioBus(ctx);
         void ctx.resume().catch(() => {});
-        for (let i = 0; i < 3; i++) {
-          const osc = ctx.createOscillator(),
-            gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.value = 520 + i * 90;
-          gain.gain.setValueAtTime(0, ctx.currentTime + i * 1.1);
-          gain.gain.linearRampToValueAtTime(
-            0.045,
-            ctx.currentTime + i * 1.1 + 0.03,
-          );
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            ctx.currentTime + i * 1.1 + 0.3,
-          );
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(ctx.currentTime + i * 1.1);
-          osc.stop(ctx.currentTime + i * 1.1 + 0.35);
+        silence();
+        const at = ctx.currentTime + 0.02;
+        for (const [offset, len, freq] of reduced ? quickBeeps : scanBeeps) {
+          tones.current.push(...beep(ctx, bus.current, at + offset, len, freq));
         }
+        tones.current.push(...ding(ctx, bus.current, at + duration / 1000));
       } catch {
         /* Audio is optional. */
       }
     }
-    const reduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    scan.current = setTimeout(() => setPhase("result"), reduced ? 600 : 4000);
+    scan.current = setTimeout(() => setPhase("result"), duration);
   }
   function save() {
     try {
@@ -142,7 +298,7 @@ export default function App() {
     }
   }
   function toggle(id: string) {
-    setDraft((d) => ({
+    changeDraft((d) => ({
       ...d,
       selected: d.selected.includes(id)
         ? d.selected.filter((v) => v !== id)
@@ -159,14 +315,26 @@ export default function App() {
     try {
       await photoStore("delete", food);
       setPhotos((p) => p.filter((f) => f.id !== food.id));
-      setDraft((d) => ({
-        ...d,
-        selected: d.selected.filter((id) => id !== food.id),
-      }));
-      setSettings((s) => ({
+      const removeFood = (s: Settings): Settings => ({
         ...s,
         selected: s.selected.filter((id) => id !== food.id),
-      }));
+        craving: s.craving === food.id ? null : s.craving,
+      });
+      changeDraft(removeFood);
+      if (!liveSettings) {
+        const next = removeFood(settings);
+        setSettings(next);
+        if (
+          settings.craving === food.id ||
+          settings.selected.includes(food.id)
+        ) {
+          try {
+            localStorage.setItem("tummy-settings-v2", JSON.stringify(next));
+          } catch {
+            setError("照片已删除，但未能保存设置；请检查浏览器存储空间。");
+          }
+        }
+      }
     } catch {
       setError("删除失败，请重试。");
     } finally {
@@ -250,6 +418,31 @@ export default function App() {
               <X size={23} />
             </button>
           )}
+          {camera && settings.debugEnabled && (
+            <button
+              className="camera-options"
+              aria-label="打开即时配置"
+              aria-expanded={liveSettings}
+              aria-controls="settings-panel"
+              onClick={() =>
+                liveSettings ? closeSettings() : openLiveSettings()
+              }
+            >
+              <Settings2 size={18} />
+              选项
+            </button>
+          )}
+          {camera && phase === "result" && (
+            <div className="camera-result" aria-label="全屏胃部显示区域">
+              <DraggableStomach
+                level={settings.level}
+                items={selected}
+                motion={settings}
+                expression={settings.expression}
+                craving={craving}
+              />
+            </div>
+          )}
           <div className="card-top">
             <span>
               <span className="status-dot" />
@@ -277,14 +470,7 @@ export default function App() {
                 <div className="radar-ring two" />
                 <div className="radar-ring three" />
                 {phase !== "result" && <div className="radar-sweep" />}
-                {phase === "result" ? (
-                  <DraggableStomach
-                    level={settings.level}
-                    items={selected}
-                    motion={settings}
-                    expression={settings.expression}
-                  />
-                ) : (
+                {phase !== "result" && (
                   <>
                     <div className="radar-blip b1" />
                     <div className="radar-blip b2" />
@@ -450,7 +636,10 @@ export default function App() {
       </footer>
       <dialog
         ref={dialog}
-        className="settings-dialog"
+        id="settings-panel"
+        aria-label={liveSettings ? "即时配置" : "家长设置"}
+        aria-modal={!liveSettings}
+        className={`settings-dialog ${liveSettings ? "live-settings" : ""}`}
         onCancel={(e) => {
           if (file) {
             e.preventDefault();
@@ -460,13 +649,15 @@ export default function App() {
       >
         <div className="modal-header">
           <div>
-            <span className="mini-label">PARENTS’ CORNER</span>
-            <h2>定制小肚子的发现</h2>
+            <span className="mini-label">
+              {liveSettings ? "LIVE CONTROLS" : "PARENTS’ CORNER"}
+            </span>
+            <h2>{liveSettings ? "即时配置" : "定制小肚子的发现"}</h2>
           </div>
           <button
             className="icon-button"
-            aria-label="关闭家长设置"
-            onClick={() => dialog.current?.close()}
+            aria-label={liveSettings ? "关闭即时配置" : "关闭家长设置"}
+            onClick={closeSettings}
           >
             <X />
           </button>
@@ -482,12 +673,15 @@ export default function App() {
             <>
               <p className="notice">
                 <ShieldCheck size={18} />
-                这是趣味模拟，扫描结果由家长设置，不代表真实胃部状态。
+                {liveSettings
+                  ? "修改即时生效并自动保存，可拖动背景中的胃部查看效果。"
+                  : "这是趣味模拟，扫描结果由家长设置，不代表真实胃部状态。"}
               </p>
               <div className="tabs" role="tablist" aria-label="设置类别">
                 {[
                   ["size", "胃部大小"],
                   ["food", "食物朋友"],
+                  ["craving", "想吃什么"],
                   ["options", "更多设置"],
                 ].map(([id, label]) => (
                   <button
@@ -523,7 +717,7 @@ export default function App() {
                           key={name}
                           aria-pressed={draft.level === i + 1}
                           onClick={() =>
-                            setDraft((d) => ({ ...d, level: i + 1 }))
+                            changeDraft((d) => ({ ...d, level: i + 1 }))
                           }
                         >
                           <span className="level-number">0{i + 1}</span>
@@ -545,6 +739,7 @@ export default function App() {
                         level={draft.level}
                         motion={draft}
                         expression={draft.expression}
+                        craving={draftCraving}
                         items={all.filter((f) => draft.selected.includes(f.id))}
                       />
                       <span>
@@ -681,8 +876,96 @@ export default function App() {
                       清理浏览器网站数据会删除照片。取消选中仅隐藏食物；删除会移出素材库。
                     </p>
                   </>
+                ) : tab === "craving" ? (
+                  <>
+                    <div className="section-heading">
+                      <h3>小肚子现在想吃什么？</h3>
+                      <span>单选 · 不影响胃内食物</span>
+                    </div>
+                    <p className="muted">
+                      在胃部右上角，用一个思考气泡说出小肚子的愿望。
+                    </p>
+                    <div
+                      className="food-grid craving-grid"
+                      aria-label="想吃的食物"
+                    >
+                      <button
+                        className={`food-option ${!draftCraving ? "selected" : ""}`}
+                        aria-pressed={!draftCraving}
+                        onClick={() =>
+                          changeDraft((d) => ({ ...d, craving: null }))
+                        }
+                      >
+                        <span aria-hidden="true">
+                          <MessageCircle size={24} />
+                        </span>
+                        不显示气泡
+                        {!draftCraving && (
+                          <Check className="selected-check" size={14} />
+                        )}
+                      </button>
+                      {all.map((f) => (
+                        <button
+                          key={f.id}
+                          className={`food-option ${draft.craving === f.id ? "selected" : ""}`}
+                          aria-label={`想吃${f.name}`}
+                          aria-pressed={draft.craving === f.id}
+                          onClick={() =>
+                            changeDraft((d) => ({ ...d, craving: f.id }))
+                          }
+                        >
+                          {f.image ? (
+                            <img src={f.image} alt="" />
+                          ) : (
+                            <span aria-hidden="true">{f.emoji}</span>
+                          )}
+                          {f.name}
+                          {draft.craving === f.id && (
+                            <Check className="selected-check" size={14} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="stomach-preview" aria-label="想吃食物预览">
+                      <Stomach
+                        level={draft.level}
+                        items={all.filter((f) => draft.selected.includes(f.id))}
+                        motion={draft}
+                        expression={draft.expression}
+                        craving={draftCraving}
+                      />
+                      <span>
+                        {draftCraving
+                          ? `想吃${draftCraving.name}…`
+                          : "思考气泡已关闭"}
+                      </span>
+                    </div>
+                    <p className="muted">
+                      想用自己的食物照片？先到“食物朋友”中添加，再来这里选择。
+                    </p>
+                  </>
                 ) : (
                   <>
+                    <div className="option-row">
+                      <div>
+                        <h3>调试模式</h3>
+                        <p>在雷达页显示“选项”，实时调整效果</p>
+                      </div>
+                      <button
+                        role="switch"
+                        aria-label="调试模式"
+                        aria-checked={draft.debugEnabled}
+                        className={`switch ${draft.debugEnabled ? "on" : ""}`}
+                        onClick={() =>
+                          changeDraft((d) => ({
+                            ...d,
+                            debugEnabled: !d.debugEnabled,
+                          }))
+                        }
+                      >
+                        <span />
+                      </button>
+                    </div>
                     <div className="section-heading">
                       <h3>小肚子的表情</h3>
                     </div>
@@ -700,7 +983,7 @@ export default function App() {
                           aria-pressed={draft.expression === value}
                           className={`food-option ${draft.expression === value ? "selected" : ""}`}
                           onClick={() =>
-                            setDraft((d) => ({ ...d, expression: value }))
+                            changeDraft((d) => ({ ...d, expression: value }))
                           }
                         >
                           <span>{emoji}</span>
@@ -719,7 +1002,7 @@ export default function App() {
                         aria-checked={draft.motion}
                         className={`switch ${draft.motion ? "on" : ""}`}
                         onClick={() =>
-                          setDraft((d) => ({ ...d, motion: !d.motion }))
+                          changeDraft((d) => ({ ...d, motion: !d.motion }))
                         }
                       >
                         <span />
@@ -740,7 +1023,7 @@ export default function App() {
                           step="1"
                           value={draft.motionSpeed}
                           onChange={(e) =>
-                            setDraft((d) => ({
+                            changeDraft((d) => ({
                               ...d,
                               motionSpeed: Number(e.target.value),
                             }))
@@ -759,7 +1042,7 @@ export default function App() {
                           step="1"
                           value={draft.motionAmplitude}
                           onChange={(e) =>
-                            setDraft((d) => ({
+                            changeDraft((d) => ({
                               ...d,
                               motionAmplitude: Number(e.target.value),
                             }))
@@ -775,6 +1058,7 @@ export default function App() {
                         items={all.filter((f) => draft.selected.includes(f.id))}
                         motion={draft}
                         expression={draft.expression}
+                        craving={draftCraving}
                       />
                       <span>
                         {draft.motion ? "蠕动效果实时预览" : "蠕动已关闭"}
@@ -792,7 +1076,7 @@ export default function App() {
                         aria-label="扫描音效"
                         className={`switch ${draft.sound ? "on" : ""}`}
                         onClick={() =>
-                          setDraft((d) => ({ ...d, sound: !d.sound }))
+                          changeDraft((d) => ({ ...d, sound: !d.sound }))
                         }
                       >
                         {draft.sound ? (
@@ -806,7 +1090,7 @@ export default function App() {
                     <button
                       className="text-button"
                       onClick={() =>
-                        setDraft({
+                        changeDraft({
                           ...defaults,
                           selected: [...defaults.selected],
                         })
@@ -823,6 +1107,7 @@ export default function App() {
                     level={draft.level}
                     motion={draft}
                     expression={draft.expression}
+                    craving={draftCraving}
                     items={all.filter((f) => draft.selected.includes(f.id))}
                   />
                   <span>{levels[draft.level - 1]}大小 · 结果预览</span>
@@ -841,13 +1126,27 @@ export default function App() {
         </div>
         {!file && (
           <div className="modal-footer">
-            <button className="secondary" onClick={() => setPreview((p) => !p)}>
-              {preview ? "收起预览" : "预览结果"}
-            </button>
-            <button className="primary" onClick={save}>
-              <Check size={18} />
-              保存设置
-            </button>
+            {liveSettings ? (
+              <>
+                <span className="muted">关闭浮层后可继续扫描</span>
+                <button className="primary" onClick={closeSettings}>
+                  完成
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="secondary"
+                  onClick={() => setPreview((p) => !p)}
+                >
+                  {preview ? "收起预览" : "预览结果"}
+                </button>
+                <button className="primary" onClick={save}>
+                  <Check size={18} />
+                  保存设置
+                </button>
+              </>
+            )}
           </div>
         )}
       </dialog>

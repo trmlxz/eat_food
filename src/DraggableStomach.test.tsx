@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import DraggableStomach from "./DraggableStomach";
+import { foods } from "./data";
 
 it("moves without changing size, ignores a second pointer, and stops after cancellation", () => {
   class TestPointerEvent extends MouseEvent {
@@ -12,7 +13,7 @@ it("moves without changing size, ignores a second pointer, and stops after cance
   }
   vi.stubGlobal("PointerEvent", TestPointerEvent);
   try {
-    render(<DraggableStomach level={4} items={[]} />);
+    const { rerender } = render(<DraggableStomach level={4} items={[]} />);
     const surface = screen.getByLabelText("拖动胃部调整位置，大小固定");
     Object.defineProperty(surface, "setPointerCapture", { value: vi.fn() });
     vi.spyOn(surface, "getBoundingClientRect").mockReturnValue({
@@ -69,6 +70,27 @@ it("moves without changing size, ignores a second pointer, and stops after cance
     expect(position).toHaveStyle("transform: translate(45%, -45%)");
     expect(surface).not.toHaveClass("dragging");
     expect(svg.innerHTML).toBe(original);
+    rerender(<DraggableStomach level={6} items={[]} expression="laugh" />);
+    expect(position).toHaveStyle("transform: translate(45%, -45%)");
+    expect(screen.getByRole("img")).toHaveAccessibleName(
+      "6级胃部示意图，没有选择食物",
+    );
+    expect(svg.querySelector("[data-expression='laugh']")).toBeInTheDocument();
+    rerender(
+      <DraggableStomach
+        level={6}
+        items={[]}
+        expression="laugh"
+        craving={foods[0]}
+      />,
+    );
+    expect(position).toHaveStyle("transform: translate(45%, -45%)");
+    const bubble = svg.querySelector(".thought-bubble")!;
+    expect(bubble.closest(".stomach-position")).toBe(position);
+    expect(bubble).toHaveTextContent("🍎");
+    expect(screen.getByRole("img")).toHaveAccessibleName(
+      "6级胃部示意图，没有选择食物，想吃苹果",
+    );
   } finally {
     vi.unstubAllGlobals();
   }
